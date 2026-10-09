@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi horario · Jaret</title>
+  <meta name="description" content="Horario semanal de Jaret: clases, alemán y repaso — Wintersemester 2026/27.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <header class="cabecera">
+    <div class="contenedor cabecera__fila">
+      <div>
+        <p class="eyebrow">Wintersemester 2026/27</p>
+        <h1>Mi horario</h1>
+      </div>
+
+      <nav class="semana-nav" aria-label="Cambiar de semana">
+        <button type="button" id="btn-anterior" aria-label="Semana anterior">←</button>
+        <div class="semana-nav__texto">
+          <strong id="semana-kw">KW 41</strong>
+          <span id="semana-rango">5 – 9 oct 2026</span>
+        </div>
+        <button type="button" id="btn-siguiente" aria-label="Semana siguiente">→</button>
+        <button type="button" id="btn-hoy" class="btn-hoy">Hoy</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <section class="proxima" id="proxima" aria-live="polite"></section>
+
+    <section aria-label="Horario de la semana">
+      <div class="calendario" id="calendario"></div>
+    </section>
+
+    <section class="materias" aria-labelledby="titulo-materias">
+      <h2 id="titulo-materias">Actividades</h2>
+      <ul class="materias__lista" id="materias"></ul>
+    </section>
+  </main>
+
+  <footer class="contenedor pie">
+    <p>Hochschule Zittau/Görlitz · Hecho por Jaret</p>
+  </footer>
+</body>
+</html>
