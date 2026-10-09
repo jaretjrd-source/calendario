@@ -2,6 +2,8 @@
 
 Página web con mi horario personal del **Wintersemester 2026/27** (intercambio
 en Alemania): clases de la uni, clases de alemán y el domingo de repaso.
+En línea: https://jaretjrd-source.github.io/calendario/
+
 Hecha con **HTML, CSS y JavaScript puro**, en el mismo estilo "minimal técnico"
 que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
 
@@ -33,5 +35,5 @@ no con doble clic en `index.html`.
 - [x] Fase 2 — Vista semanal con cuadrícula y colores por actividad
 - [x] Fase 3 — Navegación por semanas, "hoy", próxima actividad
 - [x] Fase 4 — Horario personal completo: salón nuevo de Image Processing (Edif. 4 · 1.04 desde KW 46), alemán, domingo de repaso
-- [ ] Fase 5 — Subir a GitHub y publicar con GitHub Pages
+- [x] Fase 5 — Publicado: https://jaretjrd-source.github.io/calendario/
 - [ ] Fase 6 — Extras (opcional): exámenes, tareas, días festivos, exportar a .ics
