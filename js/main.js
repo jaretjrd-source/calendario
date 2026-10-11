@@ -2,25 +2,36 @@
 // Calendario — lógica de la página
 // 1. Utilidades de fechas (semana ISO = "KW" en Alemania)
 // 2. Salón de una clase en una semana dada
-// 3. Dibujar: encabezado, cuadrícula, próxima clase, materias
-// 4. Navegación entre semanas
+// 3. Ocurrencias: qué pasa en un día (clases fijas + mis eventos)
+// 4. Dibujar: encabezado, cuadrícula, próxima actividad, lista
+// 5. Formulario de eventos
+// 6. Navegación entre semanas
 // ===================================================
 
 import { SEMANA_INICIO, ANIO_INICIO, ACTIVIDADES, CLASES, DIAS_ESPECIALES } from "./horario.js";
+import {
+  obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
+  obtenerVista, guardarVista,
+} from "./guardado.js";
 
-const HORA_MIN = 8;   // la cuadrícula empieza a las 8:00
-const HORA_MAX = 19;  // y termina a las 19:00
+const HORA_MIN = 8;   // la cuadrícula empieza a las 8:00 como mínimo
+const HORA_MAX = 19;  // y termina a las 19:00 como mínimo (se estira si hay eventos fuera)
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const MS_DIA = 24 * 60 * 60 * 1000;
+const COLOR_EVENTOS = "rosa";
 
 // ---------- 1. Fechas ----------
 
 // Lunes (a las 00:00) de la semana a la que pertenece `fecha`
 function lunesDe(fecha) {
   const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-  const diaSemana = (d.getDay() + 6) % 7; // lunes = 0 … domingo = 6
-  d.setDate(d.getDate() - diaSemana);
+  d.setDate(d.getDate() - diaDe(d) + 1);
   return d;
+}
+
+// Día de la semana: 1 = lunes … 7 = domingo
+function diaDe(fecha) {
+  return ((fecha.getDay() + 6) % 7) + 1;
 }
 
 // Lunes de la semana ISO `kw` del año `anio`.
@@ -47,10 +58,26 @@ function mismoDia(a, b) {
   return a.toDateString() === b.toDateString();
 }
 
+// Date → "2026-10-11" (en hora local, no UTC)
+function aISO(fecha) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}`;
+}
+
+// "2026-10-11" → Date local
+function deISO(texto) {
+  const [a, m, d] = texto.split("-").map(Number);
+  return new Date(a, m - 1, d);
+}
+
 // "14:30" → minutos desde medianoche (870)
 function aMinutos(hora) {
   const [h, m] = hora.split(":").map(Number);
   return h * 60 + m;
+}
+
+function minutosDe(fecha) {
+  return fecha.getHours() * 60 + fecha.getMinutes();
 }
 
 const fmtDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" });
@@ -85,30 +112,163 @@ function avisoCambio(clase, lunes) {
   return proximo ? `Cambia de salón desde KW ${proximo.desde}` : "";
 }
 
-// ---------- 3. Dibujar ----------
+// ---------- 3. Ocurrencias ----------
+// Una "ocurrencia" es una actividad en un día concreto, con todo lo
+// necesario para dibujarla: título, horas, lugar, persona, color…
+
+function ocurrenciasDe(fecha) {
+  const dia = diaDe(fecha);
+  const lunes = lunesDe(fecha);
+  const iso = aISO(fecha);
+  const lista = [];
+
+  // Horario fijo (solo desde que empieza el semestre)
+  if (lunes >= LUNES_INICIO) {
+    CLASES.forEach((clase, i) => {
+      if (clase.dia !== dia) return;
+      const act = ACTIVIDADES[clase.materia];
+      lista.push({
+        id: `c${i}`,
+        titulo: act.nombre,
+        inicio: clase.inicio,
+        fin: clase.fin,
+        lugar: textoSalon(clase, lunes),
+        persona: act.profe ?? "",
+        color: act.color,
+        aviso: avisoCambio(clase, lunes),
+        sinSalon: "salon" in clase && salonEn(clase, lunes) == null,
+      });
+    });
+  }
+
+  // Mis eventos: los que caen ese día, o los semanales del mismo día de la semana
+  for (const ev of obtenerEventos()) {
+    const inicioSerie = deISO(ev.fecha);
+    const toca = ev.repetir
+      ? diaDe(inicioSerie) === dia && fecha >= inicioSerie
+      : ev.fecha === iso;
+    if (!toca) continue;
+    lista.push({
+      id: `e${ev.id}`,
+      titulo: ev.titulo,
+      inicio: ev.inicio,
+      fin: ev.fin,
+      lugar: ev.lugar,
+      persona: ev.persona,
+      color: COLOR_EVENTOS,
+      repetir: ev.repetir,
+      evento: ev,
+    });
+  }
+
+  for (const o of lista) o.clave = `${o.id}@${iso}`;
+  return lista.sort((a, b) => aMinutos(a.inicio) - aMinutos(b.inicio));
+}
+
+// Reparte en "carriles" las ocurrencias que se empalman, para que queden
+// una al lado de la otra en vez de encimadas.
+function asignarCarriles(lista) {
+  let grupo = [];
+  let finGrupo = -1;
+  let carriles = [];
+
+  const cerrarGrupo = () => {
+    for (const o of grupo) o.carriles = carriles.length;
+    grupo = [];
+    carriles = [];
+  };
+
+  for (const o of lista) {
+    const ini = aMinutos(o.inicio);
+    if (ini >= finGrupo) cerrarGrupo();
+    let carril = carriles.findIndex((fin) => fin <= ini);
+    if (carril === -1) carril = carriles.length;
+    carriles[carril] = aMinutos(o.fin);
+    o.carril = carril;
+    grupo.push(o);
+    finGrupo = Math.max(finGrupo, aMinutos(o.fin));
+  }
+  cerrarGrupo();
+}
+
+// ---------- 4. Dibujar ----------
 
 const $ = (id) => document.getElementById(id);
-let lunesVisible = lunesDe(new Date()) < LUNES_INICIO ? LUNES_INICIO : lunesDe(new Date());
+let lunesVisible = semanaDeHoy();
+let horaMin = HORA_MIN;
+let horaMax = HORA_MAX;
+let vista = obtenerVista();                         // "semana" o "mes"
+let mesVisible = primeroDeMes(sumarDias(lunesVisible, 3));
+const MES_INICIO = primeroDeMes(LUNES_INICIO);
+
+function semanaDeHoy() {
+  const lunes = lunesDe(new Date());
+  return lunes < LUNES_INICIO ? LUNES_INICIO : lunes;
+}
+
+function primeroDeMes(fecha) {
+  return new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+}
+
+// ¿Ya terminó la actividad que acaba a la hora `fin` del día `fecha`?
+function yaTermino(fecha, fin, ahora = new Date()) {
+  const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  return d.getTime() + aMinutos(fin) * 60000 <= ahora.getTime();
+}
 
 function dibujar() {
   dibujarEncabezado();
-  dibujarCalendario();
+  $("vista-semana").hidden = vista !== "semana";
+  $("vista-mes").hidden = vista !== "mes";
+  if (vista === "semana") dibujarCalendario();
+  else dibujarMes();
+  dibujarResumen();
   dibujarProxima();
 }
 
+const fmtMes = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" });
+
 function dibujarEncabezado() {
-  const domingo = sumarDias(lunesVisible, 6);
-  $("semana-kw").textContent = `KW ${kwDe(lunesVisible)}`;
-  $("semana-rango").textContent = `${fmtDia.format(lunesVisible)} – ${fmtAnio.format(domingo)}`;
-  $("btn-anterior").disabled = lunesVisible <= LUNES_INICIO;
-  $("btn-hoy").disabled = mismoDia(lunesVisible, lunesDe(new Date()));
+  for (const btn of document.querySelectorAll("[data-vista]")) {
+    btn.setAttribute("aria-pressed", btn.dataset.vista === vista);
+  }
+
+  if (vista === "semana") {
+    const domingo = sumarDias(lunesVisible, 6);
+    $("semana-kw").textContent = `KW ${kwDe(lunesVisible)}`;
+    $("semana-rango").textContent = `${fmtDia.format(lunesVisible)} – ${fmtAnio.format(domingo)}`;
+    $("btn-anterior").disabled = lunesVisible <= LUNES_INICIO;
+    $("btn-hoy").disabled = mismoDia(lunesVisible, semanaDeHoy());
+  } else {
+    const ultimo = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 0);
+    const nombre = fmtMes.format(mesVisible);
+    $("semana-kw").textContent = nombre[0].toUpperCase() + nombre.slice(1);
+    $("semana-rango").textContent = `KW ${kwDe(mesVisible)} – ${kwDe(ultimo)}`;
+    $("btn-anterior").disabled = mesVisible <= MES_INICIO;
+    $("btn-hoy").disabled = mismoDia(mesVisible, primeroDeMes(new Date()));
+  }
+}
+
+// Días que abarca lo que se está viendo (la semana o el mes)
+function diasVisibles() {
+  if (vista === "semana") return DIAS.map((_, i) => sumarDias(lunesVisible, i));
+  const dias = [];
+  for (let d = new Date(mesVisible); d.getMonth() === mesVisible.getMonth(); d = sumarDias(d, 1)) {
+    dias.push(d);
+  }
+  return dias;
 }
 
 function dibujarCalendario() {
   const cal = $("calendario");
   const ahora = new Date();
-  const horas = HORA_MAX - HORA_MIN;
-  cal.style.setProperty("--horas", horas);
+  const semana = DIAS.map((_, i) => ocurrenciasDe(sumarDias(lunesVisible, i)));
+
+  // La cuadrícula se estira si algún evento queda fuera de 8:00–19:00
+  const todas = semana.flat();
+  horaMin = Math.min(HORA_MIN, ...todas.map((o) => Math.floor(aMinutos(o.inicio) / 60)));
+  horaMax = Math.max(HORA_MAX, ...todas.map((o) => Math.ceil(aMinutos(o.fin) / 60)));
+  cal.style.setProperty("--horas", horaMax - horaMin);
   cal.innerHTML = "";
 
   // Esquina vacía + encabezados de día
@@ -123,27 +283,35 @@ function dibujarCalendario() {
 
   // Columna de horas
   const eje = crear("div", "calendario__horas");
-  for (let h = HORA_MIN; h < HORA_MAX; h++) {
+  for (let h = horaMin; h < horaMax; h++) {
     eje.append(crear("span", "", `${h}:00`));
   }
   cal.append(eje);
 
-  // Una columna por día con sus clases
-  DIAS.forEach((_, i) => {
+  // Una columna por día con sus actividades
+  semana.forEach((ocurrencias, i) => {
     const fecha = sumarDias(lunesVisible, i);
     const col = crear("div", "calendario__col");
     if (mismoDia(fecha, ahora)) col.classList.add("es-hoy");
 
-    const clases = CLASES.filter((c) => c.dia === i + 1);
     const especial = DIAS_ESPECIALES[i + 1];
     if (especial) col.append(crear("p", "calendario__especial", especial));
-    else if (clases.length === 0) col.append(crear("p", "calendario__libre", "Libre"));
+    else if (ocurrencias.length === 0) col.append(crear("p", "calendario__libre", "Libre"));
 
-    for (const clase of clases) col.append(tarjetaClase(clase, fecha, ahora));
+    asignarCarriles(ocurrencias);
+    for (const o of ocurrencias) col.append(tarjeta(o, fecha, ahora));
+
+    // Clic en un hueco libre → nuevo evento a esa hora
+    col.addEventListener("click", (e) => {
+      if (e.target !== col && !e.target.matches(".calendario__libre, .calendario__especial")) return;
+      const min = horaMin * 60 + (e.offsetY / col.clientHeight) * (horaMax - horaMin) * 60;
+      const hora = Math.floor(min / 60);
+      abrirFormulario(null, { fecha: aISO(fecha), inicio: hhmm(hora * 60), fin: hhmm(hora * 60 + 60) });
+    });
 
     // Línea roja de "ahora"
-    const min = ahora.getHours() * 60 + ahora.getMinutes();
-    if (mismoDia(fecha, ahora) && min >= HORA_MIN * 60 && min <= HORA_MAX * 60) {
+    const min = minutosDe(ahora);
+    if (mismoDia(fecha, ahora) && min >= horaMin * 60 && min <= horaMax * 60) {
       const linea = crear("div", "calendario__ahora");
       linea.style.top = posicion(min);
       col.append(linea);
@@ -152,34 +320,61 @@ function dibujarCalendario() {
   });
 }
 
-function tarjetaClase(clase, fecha, ahora) {
-  const materia = ACTIVIDADES[clase.materia];
-  const ini = aMinutos(clase.inicio);
-  const fin = aMinutos(clase.fin);
-  const aviso = avisoCambio(clase, lunesVisible);
-  const lugar = textoSalon(clase, lunesVisible);
+function tarjeta(o, fecha, ahora) {
+  const ini = aMinutos(o.inicio);
+  const fin = aMinutos(o.fin);
+  const hecha = estaHecha(o.clave);
+  const yaPaso = yaTermino(fecha, o.fin, ahora);
 
-  const el = crear("article", `clase clase--${materia.color}`);
+  const el = crear("article", `clase clase--${o.color}`);
   el.style.top = posicion(ini);
-  el.style.height = `calc(${posicion(fin)} - ${posicion(ini)})`;
+  el.style.setProperty("--alto", `calc(${posicion(fin)} - ${posicion(ini)})`);
+  // Carriles: si hay empalmes, cada tarjeta ocupa una fracción del ancho
+  el.style.left = `calc(4px + (100% - 8px) * ${o.carril} / ${o.carriles})`;
+  el.style.width = `calc((100% - 8px) / ${o.carriles} - ${o.carriles > 1 ? 2 : 0}px)`;
 
-  const minAhora = ahora.getHours() * 60 + ahora.getMinutes();
-  if (mismoDia(fecha, ahora) && minAhora >= ini && minAhora < fin) el.classList.add("en-curso");
-  if ("salon" in clase && salonEn(clase, lunesVisible) == null) el.classList.add("sin-salon");
+  if (mismoDia(fecha, ahora) && minutosDe(ahora) >= ini && !yaPaso) el.classList.add("en-curso");
+  if (o.sinSalon) el.classList.add("sin-salon");
+  if (hecha) el.classList.add("hecha");
+  if (yaPaso) el.classList.add(hecha ? "cumplida" : "no-cumplida");
 
   el.innerHTML = `
-    <h3>${materia.nombre}</h3>
-    <p class="clase__hora">${clase.inicio} – ${clase.fin}</p>
-    ${lugar ? `<p>${lugar}</p>` : ""}
-    ${materia.profe ? `<p class="clase__profe">${materia.profe}</p>` : ""}
-    ${aviso ? `<p class="clase__aviso">⚠ ${aviso}</p>` : ""}
+    <h3>${escapar(o.titulo)}${o.repetir ? ' <span class="clase__ciclo" title="Se repite cada semana">↻</span>' : ""}</h3>
+    <p class="clase__hora">${o.inicio} – ${o.fin}</p>
+    ${o.lugar ? `<p>${escapar(o.lugar)}</p>` : ""}
+    ${o.persona ? `<p class="clase__profe">${escapar(o.persona)}</p>` : ""}
+    ${o.aviso ? `<p class="clase__aviso">⚠ ${o.aviso}</p>` : ""}
   `;
+
+  // Cuadrito de "cumplida": se puede marcar antes o después de que pase
+  const check = crear("button", "check");
+  check.type = "button";
+  check.setAttribute("aria-pressed", hecha);
+  const estado = hecha ? "Cumplida" : yaPaso ? "No cumplida" : "Pendiente";
+  check.setAttribute("aria-label", `${o.titulo}: ${estado}`);
+  check.title = `${estado} · clic para ${hecha ? "desmarcar" : "marcar como cumplida"}`;
+  check.addEventListener("click", (e) => {
+    e.stopPropagation();
+    alternarHecha(o.clave);
+    dibujar();
+  });
+  el.prepend(check);
+
+  // Mis eventos se pueden editar con un clic
+  if (o.evento) {
+    el.classList.add("editable");
+    el.tabIndex = 0;
+    el.addEventListener("click", () => abrirFormulario(o.evento));
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") abrirFormulario(o.evento);
+    });
+  }
   return el;
 }
 
 // Minutos del día → posición vertical (en % de la columna)
 function posicion(min) {
-  return `${((min - HORA_MIN * 60) / ((HORA_MAX - HORA_MIN) * 60)) * 100}%`;
+  return `${((min - horaMin * 60) / ((horaMax - horaMin) * 60)) * 100}%`;
 }
 
 // Tarjeta "Ahora / Lo próximo" (siempre respecto a hoy, no a la semana visible)
@@ -187,29 +382,23 @@ function dibujarProxima() {
   const ahora = new Date();
   const caja = $("proxima");
 
-  // Buscar en los próximos 14 días la primera clase que no haya terminado
+  // Buscar en los próximos 14 días la primera actividad que no haya terminado
   for (let d = 0; d < 14; d++) {
     const fecha = sumarDias(ahora, d);
-    if (lunesDe(fecha) < LUNES_INICIO) continue;
-    const dia = (fecha.getDay() + 6) % 7 + 1;
-    const minAhora = d === 0 ? ahora.getHours() * 60 + ahora.getMinutes() : -1;
+    const minAhora = d === 0 ? minutosDe(ahora) : -1;
+    const o = ocurrenciasDe(fecha).find((x) => aMinutos(x.fin) > minAhora);
+    if (!o) continue;
 
-    const clase = CLASES
-      .filter((c) => c.dia === dia && aMinutos(c.fin) > minAhora)
-      .sort((a, b) => aMinutos(a.inicio) - aMinutos(b.inicio))[0];
-    if (!clase) continue;
-
-    const materia = ACTIVIDADES[clase.materia];
-    const enCurso = minAhora >= aMinutos(clase.inicio);
+    const enCurso = minAhora >= aMinutos(o.inicio);
     const cuando = enCurso
-      ? `Ahora · hasta las ${clase.fin}`
-      : `${cuandoTexto(d, fecha)} · ${clase.inicio} – ${clase.fin}`;
+      ? `Ahora · hasta las ${o.fin}`
+      : `${cuandoTexto(d, fecha)} · ${o.inicio} – ${o.fin}`;
 
-    caja.className = `proxima clase--${materia.color}`;
+    caja.className = `proxima clase--${o.color}`;
     caja.innerHTML = `
       <p class="eyebrow">${enCurso ? "Ahora" : "Lo próximo"}</p>
-      <p class="proxima__nombre">${materia.nombre}</p>
-      <p class="proxima__detalle">${[cuando, textoSalon(clase, lunesDe(fecha)), materia.profe].filter(Boolean).join(" · ")}</p>
+      <p class="proxima__nombre">${escapar(o.titulo)}</p>
+      <p class="proxima__detalle">${[cuando, o.lugar, o.persona].filter(Boolean).map(escapar).join(" · ")}</p>
     `;
     return;
   }
@@ -219,10 +408,130 @@ function dibujarProxima() {
 function cuandoTexto(d, fecha) {
   if (d === 0) return "Hoy";
   if (d === 1) return "Mañana";
-  return `${DIAS[(fecha.getDay() + 6) % 7]} ${fmtDia.format(fecha)}`;
+  return `${DIAS[diaDe(fecha) - 1]} ${fmtDia.format(fecha)}`;
 }
 
-function dibujarMaterias() {
+// ---------- 4b. Vista mensual ----------
+// Cuadrícula lunes–domingo con las semanas del mes. Cada día muestra sus
+// actividades en corto (hora + título + estado). Clic en un día → esa semana.
+
+function dibujarMes() {
+  const cont = $("mes");
+  const ahora = new Date();
+  cont.innerHTML = "";
+
+  cont.append(crear("div", "mes__kw mes__cabeza", "KW"));
+  for (const nombre of DIAS) cont.append(crear("div", "mes__cabeza", nombre.slice(0, 3)));
+
+  const ultimo = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + 1, 0);
+  for (let lunes = lunesDe(mesVisible); lunes <= ultimo; lunes = sumarDias(lunes, 7)) {
+    cont.append(crear("div", "mes__kw", String(kwDe(lunes))));
+
+    for (let i = 0; i < 7; i++) {
+      const fecha = sumarDias(lunes, i);
+      const celda = crear("button", "mes__dia");
+      celda.type = "button";
+      celda.title = `Ver la semana del ${fmtDia.format(fecha)}`;
+      if (fecha.getMonth() !== mesVisible.getMonth()) celda.classList.add("fuera");
+      if (mismoDia(fecha, ahora)) celda.classList.add("es-hoy");
+
+      celda.append(crear("span", "mes__num", String(fecha.getDate())));
+
+      const especial = DIAS_ESPECIALES[i + 1];
+      if (especial) celda.append(crear("span", "mes__especial", especial));
+
+      for (const o of ocurrenciasDe(fecha)) {
+        const linea = crear("span", `mes__act clase--${o.color} ${estadoDe(o, fecha, ahora)}`);
+        linea.innerHTML = `<span class="mes__marca" aria-hidden="true"></span>${o.inicio} ${escapar(o.titulo)}`;
+        celda.append(linea);
+      }
+
+      celda.addEventListener("click", () => {
+        lunesVisible = lunesDe(fecha) < LUNES_INICIO ? LUNES_INICIO : lunesDe(fecha);
+        cambiarVista("semana");
+      });
+      cont.append(celda);
+    }
+  }
+}
+
+// "cumplida", "no-cumplida" o "" (todavía no pasa y no está marcada)
+function estadoDe(o, fecha, ahora = new Date()) {
+  if (estaHecha(o.clave)) return "cumplida";
+  return yaTermino(fecha, o.fin, ahora) ? "no-cumplida" : "";
+}
+
+// ---------- 4c. Resumen (barra lateral) ----------
+// Cuenta lo cumplido / no cumplido / por venir del periodo visible
+// y lista lo que ya pasó sin cumplirse.
+
+function dibujarResumen() {
+  const ahora = new Date();
+  const cumplidas = [];
+  const fallidas = [];
+  const porVenir = [];
+
+  for (const fecha of diasVisibles()) {
+    for (const o of ocurrenciasDe(fecha)) {
+      const estado = estadoDe(o, fecha, ahora);
+      if (estado === "cumplida") cumplidas.push(o);
+      else if (estado === "no-cumplida") fallidas.push({ o, fecha });
+      else porVenir.push(o);
+    }
+  }
+
+  const evaluadas = cumplidas.length + fallidas.length;
+  const pct = evaluadas ? Math.round((cumplidas.length / evaluadas) * 100) : null;
+
+  const caja = $("resumen");
+  caja.innerHTML = `
+    <h2>${vista === "semana" ? "Resumen de la semana" : "Resumen del mes"}</h2>
+
+    <div class="resumen__cifras">
+      <div class="cifra cifra--ok"><strong>${cumplidas.length}</strong><span>Cumplidas</span></div>
+      <div class="cifra cifra--mal"><strong>${fallidas.length}</strong><span>No cumplidas</span></div>
+      <div class="cifra"><strong>${porVenir.length}</strong><span>Por venir</span></div>
+    </div>
+
+    <div class="resumen__barra" role="img"
+         aria-label="${pct === null ? "Sin actividades terminadas todavía" : `Cumplimiento: ${pct}%`}">
+      <div style="width: ${pct ?? 0}%"></div>
+    </div>
+    <p class="resumen__pct">${pct === null ? "Aún no termina ninguna actividad" : `${pct}% de cumplimiento`}</p>
+
+    <h3>No cumplidas</h3>
+  `;
+
+  if (fallidas.length === 0) {
+    caja.append(crear("p", "resumen__vacio", evaluadas ? "Todo al día." : "Nada por aquí todavía."));
+    return;
+  }
+
+  const lista = crear("ul", "resumen__lista");
+  for (const { o, fecha } of fallidas) {
+    const li = crear("li", `pendiente clase--${o.color}`);
+    li.innerHTML = `
+      <span class="pendiente__texto">
+        <strong>${escapar(o.titulo)}</strong>
+        <small>${DIAS[diaDe(fecha) - 1].slice(0, 3)} ${fmtDia.format(fecha)} · ${o.inicio} – ${o.fin}</small>
+      </span>
+    `;
+    const btn = crear("button", "check");
+    btn.type = "button";
+    btn.setAttribute("aria-pressed", "false");
+    btn.setAttribute("aria-label", `Marcar "${o.titulo}" como cumplida`);
+    btn.title = "Marcar como cumplida";
+    btn.addEventListener("click", () => {
+      alternarHecha(o.clave);
+      dibujar();
+    });
+    li.prepend(btn);
+    lista.append(li);
+  }
+  caja.append(lista);
+}
+
+function dibujarActividades() {
   const lista = $("materias");
   for (const [id, m] of Object.entries(ACTIVIDADES)) {
     const horas = CLASES
@@ -242,28 +551,129 @@ function crear(tag, clase = "", texto = "") {
   return el;
 }
 
-// ---------- 4. Navegación ----------
+// Lo que escribo en el formulario se muestra como texto, nunca como HTML
+function escapar(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto;
+  return div.innerHTML;
+}
 
-function moverSemana(semanas) {
-  const nuevo = sumarDias(lunesVisible, semanas * 7);
-  if (nuevo < LUNES_INICIO) return;
-  lunesVisible = nuevo;
+function hhmm(min) {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${p(Math.floor(min / 60) % 24)}:${p(min % 60)}`;
+}
+
+// ---------- 5. Formulario de eventos ----------
+
+const dialogo = $("dialogo-evento");
+const form = $("form-evento");
+let editando = null; // evento que se está editando (null = nuevo)
+
+function abrirFormulario(evento, valores = {}) {
+  editando = evento;
+  const datos = evento ?? {
+    titulo: "",
+    fecha: valores.fecha ?? aISO(mismoDia(lunesVisible, lunesDe(new Date())) ? new Date() : lunesVisible),
+    inicio: valores.inicio ?? "09:00",
+    fin: valores.fin ?? "10:00",
+    lugar: "",
+    persona: "",
+    repetir: false,
+  };
+
+  $("dialogo-titulo").textContent = evento ? "Editar evento" : "Nuevo evento";
+  form.titulo.value = datos.titulo;
+  form.fecha.value = datos.fecha;
+  form.inicio.value = datos.inicio;
+  form.fin.value = datos.fin;
+  form.lugar.value = datos.lugar;
+  form.persona.value = datos.persona;
+  form.repetir.checked = datos.repetir;
+  $("btn-borrar").hidden = !evento;
+  $("error-evento").textContent = "";
+  dialogo.showModal();
+  form.titulo.focus();
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (form.fin.value <= form.inicio.value) {
+    $("error-evento").textContent = "La hora de fin tiene que ser después de la de inicio.";
+    return;
+  }
+  guardarEvento({
+    id: editando?.id,
+    titulo: form.titulo.value.trim(),
+    fecha: form.fecha.value,
+    inicio: form.inicio.value,
+    fin: form.fin.value,
+    lugar: form.lugar.value.trim(),
+    persona: form.persona.value.trim(),
+    repetir: form.repetir.checked,
+  });
+  dialogo.close();
+  dibujar();
+});
+
+$("btn-cancelar").addEventListener("click", () => dialogo.close());
+
+$("btn-borrar").addEventListener("click", () => {
+  const texto = editando.repetir
+    ? `¿Borrar "${editando.titulo}" de todas las semanas?`
+    : `¿Borrar "${editando.titulo}"?`;
+  if (!confirm(texto)) return;
+  borrarEvento(editando.id);
+  dialogo.close();
+  dibujar();
+});
+
+$("btn-nuevo").addEventListener("click", () => abrirFormulario(null));
+
+// ---------- 6. Navegación ----------
+
+// Avanza o retrocede una semana o un mes, según la vista
+function mover(pasos) {
+  if (vista === "semana") {
+    const nuevo = sumarDias(lunesVisible, pasos * 7);
+    if (nuevo < LUNES_INICIO) return;
+    lunesVisible = nuevo;
+  } else {
+    const nuevo = new Date(mesVisible.getFullYear(), mesVisible.getMonth() + pasos, 1);
+    if (nuevo < MES_INICIO) return;
+    mesVisible = nuevo;
+  }
   dibujar();
 }
 
-$("btn-anterior").addEventListener("click", () => moverSemana(-1));
-$("btn-siguiente").addEventListener("click", () => moverSemana(1));
+function cambiarVista(nueva) {
+  vista = nueva;
+  guardarVista(vista);
+  // El mes que se muestra es el de la semana que estaba viendo
+  if (vista === "mes") mesVisible = primeroDeMes(sumarDias(lunesVisible, 3));
+  dibujar();
+}
+
+$("btn-anterior").addEventListener("click", () => mover(-1));
+$("btn-siguiente").addEventListener("click", () => mover(1));
 $("btn-hoy").addEventListener("click", () => {
-  lunesVisible = lunesDe(new Date()) < LUNES_INICIO ? LUNES_INICIO : lunesDe(new Date());
+  lunesVisible = semanaDeHoy();
+  mesVisible = primeroDeMes(new Date());
   dibujar();
 });
 
-// Flechas del teclado para cambiar de semana
+for (const btn of document.querySelectorAll("[data-vista]")) {
+  btn.addEventListener("click", () => cambiarVista(btn.dataset.vista));
+}
+
+// Flechas del teclado para cambiar de semana/mes (no mientras se escribe en el formulario)
 document.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowLeft") moverSemana(-1);
-  if (e.key === "ArrowRight") moverSemana(1);
+  if (dialogo.open) return;
+  if (e.key === "ArrowLeft") mover(-1);
+  if (e.key === "ArrowRight") mover(1);
 });
 
-dibujarMaterias();
+dibujarActividades();
 dibujar();
-setInterval(dibujar, 60 * 1000); // actualizar la línea de "ahora" cada minuto
+setInterval(() => {
+  if (!dialogo.open) dibujar(); // actualizar "ahora" y lo que ya pasó, cada minuto
+}, 60 * 1000);

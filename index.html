@@ -18,14 +18,19 @@
         <h1>Mi horario</h1>
       </div>
 
-      <nav class="semana-nav" aria-label="Cambiar de semana">
-        <button type="button" id="btn-anterior" aria-label="Semana anterior">←</button>
+      <nav class="semana-nav" aria-label="Cambiar de periodo">
+        <div class="selector-vista" role="group" aria-label="Vista">
+          <button type="button" data-vista="semana" aria-pressed="true">Semana</button>
+          <button type="button" data-vista="mes" aria-pressed="false">Mes</button>
+        </div>
+        <button type="button" id="btn-anterior" aria-label="Anterior">←</button>
         <div class="semana-nav__texto">
           <strong id="semana-kw">KW 41</strong>
           <span id="semana-rango">5 – 9 oct 2026</span>
         </div>
-        <button type="button" id="btn-siguiente" aria-label="Semana siguiente">→</button>
+        <button type="button" id="btn-siguiente" aria-label="Siguiente">→</button>
         <button type="button" id="btn-hoy" class="btn-hoy">Hoy</button>
+        <button type="button" id="btn-nuevo" class="btn-principal">+ Evento</button>
       </nav>
     </div>
   </header>
@@ -33,15 +38,70 @@
   <main class="contenedor">
     <section class="proxima" id="proxima" aria-live="polite"></section>
 
-    <section aria-label="Horario de la semana">
-      <div class="calendario" id="calendario"></div>
-    </section>
+    <div class="disposicion">
+      <div class="disposicion__principal">
+        <section id="vista-semana" class="vista-semana" aria-label="Horario de la semana">
+          <div class="calendario" id="calendario"></div>
+        </section>
+
+        <section id="vista-mes" aria-label="Horario del mes" hidden>
+          <div class="mes" id="mes"></div>
+        </section>
+      </div>
+
+      <aside class="resumen" id="resumen" aria-live="polite"></aside>
+    </div>
 
     <section class="materias" aria-labelledby="titulo-materias">
       <h2 id="titulo-materias">Actividades</h2>
       <ul class="materias__lista" id="materias"></ul>
     </section>
   </main>
+
+  <!-- Formulario para agregar / editar mis eventos -->
+  <dialog id="dialogo-evento" class="dialogo" aria-labelledby="dialogo-titulo">
+    <form id="form-evento">
+      <h2 id="dialogo-titulo">Nuevo evento</h2>
+
+      <label>Título
+        <input name="titulo" type="text" required maxlength="80" placeholder="Ej. Gimnasio, junta de proyecto…">
+      </label>
+
+      <label>Fecha
+        <input name="fecha" type="date" required>
+      </label>
+
+      <div class="dialogo__fila">
+        <label>Inicio
+          <input name="inicio" type="time" required step="300">
+        </label>
+        <label>Fin
+          <input name="fin" type="time" required step="300">
+        </label>
+      </div>
+
+      <label>Lugar <span class="opcional">(opcional)</span>
+        <input name="lugar" type="text" maxlength="80" placeholder="Ej. Edif. 4 · Raum 0.03">
+      </label>
+
+      <label>Persona <span class="opcional">(opcional)</span>
+        <input name="persona" type="text" maxlength="80" placeholder="Ej. Daniel Fiß">
+      </label>
+
+      <label class="dialogo__check">
+        <input name="repetir" type="checkbox">
+        Repetir cada semana
+      </label>
+
+      <p class="dialogo__error" id="error-evento" role="alert"></p>
+
+      <div class="dialogo__botones">
+        <button type="button" id="btn-borrar" class="btn-peligro" hidden>Borrar</button>
+        <button type="button" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+    </form>
+  </dialog>
 
   <footer class="contenedor pie">
     <p>Hochschule Zittau/Görlitz · Hecho por Jaret</p>

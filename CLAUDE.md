@@ -14,6 +14,17 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     `cambios: [{ desde: KW, salon }]` = cambio a partir de esa semana
     (`salon: undefined` = por confirmar).
   - `DIAS_ESPECIALES` = días con una nota en vez de bloques (domingo = "Repaso").
+- **Lo que agrega Jaret desde la página** (`js/guardado.js`, localStorage, solo en ese navegador):
+  - Eventos: `{ id, titulo, fecha, inicio, fin, lugar, persona, repetir }`; con `repetir`
+    se repite cada semana el mismo día desde `fecha`. Color fijo `--rosa`.
+  - Cumplidas: claves `"idOcurrencia@AAAA-MM-DD"` (`c<índice en CLASES>` o `e<id evento>`).
+    Al pasar la hora: tarjeta atenuada + cuadrito verde ✓ (y título tachado) o rojo ✕.
+    (Jaret no quiso diagonales ni X encima de la tarjeta: prefiere algo limpio.)
+- `main.js` junta clases fijas + eventos en "ocurrencias" por día y reparte en carriles
+  las que se empalman.
+- **Vistas:** semana (cuadrícula por horas) y mes (cuadrícula de días, actividades en corto).
+  La vista elegida se recuerda (localStorage). La barra lateral `#resumen` resume el periodo
+  visible (semana o mes) y lista lo no cumplido.
 - **Semanas:** se usa la semana ISO (KW), como en Alemania.
 
 ## Sobre Jaret
@@ -26,4 +37,5 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
 ## Pendiente
 
 - Fecha de fin del semestre: no se sabe aún (la navegación no tiene límite hacia adelante).
-- Ideas (Fase 6, opcional): exámenes, tareas, días festivos, exportar a .ics.
+- Eventos y cumplidas no se sincronizan entre dispositivos (localStorage).
+- Ideas (Fase 8, opcional): sincronizar, exportar a .ics, días festivos.

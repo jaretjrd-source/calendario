@@ -36,11 +36,15 @@
   --ambar:   #a1620b;  --ambar-bg:   #fbf0dd;
   --rojo:    #b0413e;  --rojo-bg:    #f8e7e6;
   --cian:    #1f7a8c;  --cian-bg:    #e3f1f4;
+  --rosa:    #b03a78;  --rosa-bg:    #f9e6f0;
 
-  --maxw: 1240px;
+  --cumplida:    #16a34a;
+  --no-cumplida: #dc2626;
+
+  --maxw: 1440px;
   --space: 2rem;
   --radius: 10px;
-  --hora-alto: 4rem; /* alto de una hora en la cuadrícula */
+  --hora-alto: 5rem; /* alto de una hora en la cuadrícula (caben 4 renglones) */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -60,6 +64,10 @@
     --ambar:   #e3b062;  --ambar-bg:   #2f2617;
     --rojo:    #e59591;  --rojo-bg:    #33201f;
     --cian:    #7cc6d4;  --cian-bg:    #1a2c30;
+    --rosa:    #e79cc4;  --rosa-bg:    #33202b;
+
+    --cumplida:    #4ade80;
+    --no-cumplida: #f87171;
   }
 }
 
@@ -174,6 +182,36 @@ button:focus-visible {
   margin-left: 0.5rem;
 }
 
+.btn-principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-principal:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .btn-principal,
+  .btn-principal:hover:not(:disabled) {
+    color: #131316;
+  }
+}
+
+.btn-peligro {
+  margin-right: auto; /* se va a la izquierda, lejos de "Guardar" */
+  color: var(--no-cumplida);
+}
+
+.btn-peligro:hover:not(:disabled) {
+  border-color: var(--no-cumplida);
+  color: var(--no-cumplida);
+}
+
 /* ---------- 4. Próxima clase ---------- */
 
 .proxima {
@@ -258,6 +296,7 @@ button:focus-visible {
 
 .calendario__col {
   position: relative;
+  cursor: copy; /* clic en un hueco = nuevo evento */
   height: calc(var(--horas) * var(--hora-alto));
   border-left: 1px solid var(--border);
   /* una línea fina por cada hora */
@@ -319,18 +358,44 @@ button:focus-visible {
 .clase--ambar   { --c: var(--ambar);   --c-bg: var(--ambar-bg); }
 .clase--rojo    { --c: var(--rojo);    --c-bg: var(--rojo-bg); }
 .clase--cian    { --c: var(--cian);    --c-bg: var(--cian-bg); }
+.clase--rosa    { --c: var(--rosa);    --c-bg: var(--rosa-bg); }
 
 .clase {
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  padding: 0.4rem 0.55rem;
+  position: absolute; /* top, height, left y width los pone main.js */
+  height: var(--alto); /* --alto lo pone main.js según la duración */
+  padding: 0.4rem 1.6rem 0.4rem 0.55rem; /* a la derecha queda el cuadrito */
+  cursor: default;
   background: var(--c-bg);
   border-left: 3px solid var(--c);
   border-radius: 6px;
   font-size: 0.78rem;
   line-height: 1.35;
   overflow: hidden;
+}
+
+/* Cada renglón en una sola línea; si no cabe, termina en "…" */
+.clase h3,
+.clase p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Al pasar el mouse (o con el teclado) la tarjeta crece y muestra todo */
+.clase:hover,
+.clase:focus-within,
+.clase:focus-visible {
+  height: auto;
+  min-height: var(--alto);
+  z-index: 3;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.15);
+}
+
+.clase:hover h3,
+.clase:hover p,
+.clase:focus-within h3,
+.clase:focus-within p {
+  white-space: normal;
 }
 
 .clase h3 {
@@ -360,6 +425,486 @@ button:focus-visible {
 
 .clase.en-curso {
   box-shadow: 0 0 0 2px var(--c);
+}
+
+.clase.editable {
+  cursor: pointer;
+}
+
+.clase.editable:hover,
+.clase.editable:focus-visible {
+  outline: 1px solid var(--c);
+}
+
+.clase__ciclo {
+  font-weight: 400;
+}
+
+/* Cuadrito de "cumplida" */
+.check {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 1;
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  border: 1.5px solid var(--c);
+  border-radius: 4px;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.check[aria-pressed="true"] {
+  background: var(--cumplida);
+  border-color: var(--cumplida);
+}
+
+.check[aria-pressed="true"]::after {
+  content: "✓";
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Cuando ya pasó: la tarjeta se atenúa y el cuadrito dice cómo fue
+   (verde ✓ = cumplida, rojo ✕ = no cumplida). Si se cumplió, el título se tacha. */
+.clase.cumplida,
+.clase.no-cumplida {
+  opacity: 0.55;
+}
+
+.clase.cumplida h3 {
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+}
+
+.clase.no-cumplida .check {
+  border-color: var(--no-cumplida);
+}
+
+.clase.no-cumplida .check::after {
+  content: "✕";
+  color: var(--no-cumplida);
+  font-weight: 700;
+}
+
+.clase.cumplida:hover,
+.clase.no-cumplida:hover,
+.clase.cumplida:focus-within,
+.clase.no-cumplida:focus-within {
+  opacity: 1;
+}
+
+/* ---------- 6b. Formulario de eventos ---------- */
+
+.dialogo {
+  margin: auto;
+  width: min(26rem, calc(100% - 2rem));
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.2);
+}
+
+.dialogo::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+
+.dialogo form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.dialogo h2 {
+  margin-bottom: 0.25rem;
+}
+
+.dialogo label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.dialogo input:not([type="checkbox"]) {
+  font: inherit;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  color-scheme: light dark; /* calendario/reloj nativos en modo oscuro */
+}
+
+.dialogo input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.dialogo__fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.dialogo .dialogo__check {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.dialogo__check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
+.opcional {
+  font-weight: 400;
+  color: var(--text-soft);
+}
+
+.dialogo__error {
+  color: var(--no-cumplida);
+  font-size: 0.85rem;
+}
+
+.dialogo__error:empty {
+  display: none;
+}
+
+.dialogo__botones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* ---------- 6c. Selector Semana | Mes ---------- */
+
+[hidden] {
+  display: none !important;
+}
+
+.selector-vista {
+  display: flex;
+  margin-right: 0.5rem;
+}
+
+.selector-vista button {
+  border-radius: 0;
+}
+
+.selector-vista button:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.selector-vista button:last-child {
+  border-radius: 0 8px 8px 0;
+  margin-left: -1px;
+}
+
+.selector-vista button[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+  .selector-vista button[aria-pressed="true"] {
+    color: #131316;
+  }
+}
+
+/* ---------- 6d. Calendario + barra lateral ---------- */
+
+.disposicion {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.resumen {
+  position: sticky;
+  top: 6.5rem; /* debajo de la cabecera fija */
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.resumen h2 {
+  font-size: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.resumen h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin: 1.25rem 0 0.6rem;
+}
+
+.resumen__cifras {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.cifra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem 0.25rem;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.cifra strong {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.cifra span {
+  font-size: 0.7rem;
+  color: var(--text-soft);
+  text-align: center;
+}
+
+.cifra--ok strong  { color: var(--cumplida); }
+.cifra--mal strong { color: var(--no-cumplida); }
+
+.resumen__barra {
+  margin-top: 1rem;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.resumen__barra div {
+  height: 100%;
+  background: var(--cumplida);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.resumen__pct {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.resumen__vacio {
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.resumen__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.pendiente {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-left: 3px solid var(--c);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.pendiente .check {
+  position: static;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  border-color: var(--no-cumplida);
+}
+
+.pendiente__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.pendiente__texto strong {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pendiente__texto small {
+  font-size: 0.75rem;
+  color: var(--text-soft);
+}
+
+/* ---------- 6e. Vista mensual ---------- */
+
+.mes {
+  display: grid;
+  grid-template-columns: 2.5rem repeat(7, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.mes__cabeza {
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+}
+
+.mes__kw {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-soft);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.mes__kw.mes__cabeza {
+  align-items: center;
+  padding: 0.5rem 0;
+  border-left: 0;
+}
+
+.mes__dia {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.1rem;
+  min-height: 8.5rem;
+  padding: 0.35rem 0.4rem 0.5rem;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--bg);
+  text-align: left;
+  min-width: 0;
+}
+
+.mes__dia:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg));
+  color: var(--text);
+}
+
+.mes__dia.fuera {
+  background: var(--surface);
+}
+
+.mes__dia.fuera > * {
+  opacity: 0.45;
+}
+
+.mes__num {
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.mes__dia.es-hoy .mes__num {
+  background: var(--accent);
+  color: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+  .mes__dia.es-hoy .mes__num {
+    color: #131316;
+  }
+}
+
+.mes__especial {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.mes__act {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Marca a la izquierda: punto del color de la actividad, ✓ verde o ✕ rojo */
+.mes__marca {
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--c);
+}
+
+.mes__act.cumplida,
+.mes__act.no-cumplida {
+  color: var(--text-soft);
+}
+
+.mes__act.cumplida {
+  text-decoration: line-through;
+}
+
+.mes__act.cumplida .mes__marca,
+.mes__act.no-cumplida .mes__marca {
+  width: auto;
+  height: auto;
+  background: none;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.mes__act.cumplida .mes__marca::before    { content: "✓"; color: var(--cumplida); }
+.mes__act.no-cumplida .mes__marca::before { content: "✕"; color: var(--no-cumplida); }
+
+/* Pantallas medianas: la barra lateral pasa abajo */
+@media (max-width: 1100px) {
+  .disposicion {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen {
+    position: static;
+  }
 }
 
 /* ---------- 7. Lista de materias ---------- */
@@ -408,6 +953,8 @@ button:focus-visible {
 /* Pantallas chicas: la semana se desliza de lado en vez de aplastarse */
 @media (max-width: 760px) {
   :root { --space: 1rem; }
-  section[aria-label="Horario de la semana"] { overflow-x: auto; }
+  .vista-semana,
+  #vista-mes { overflow-x: auto; }
+  .mes { min-width: 46rem; }
   .calendario { min-width: 60rem; }
 }
