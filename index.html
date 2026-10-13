@@ -19,6 +19,10 @@
       </div>
 
       <nav class="semana-nav" aria-label="Cambiar de periodo">
+        <div class="selector-vista" role="group" aria-label="Qué mostrar (se pueden combinar)">
+          <button type="button" data-modo="horario" aria-pressed="true">Horario</button>
+          <button type="button" data-modo="gastos" aria-pressed="false">Gastos</button>
+        </div>
         <div class="selector-vista" role="group" aria-label="Vista">
           <button type="button" data-vista="semana" aria-pressed="true">Semana</button>
           <button type="button" data-vista="mes" aria-pressed="false">Mes</button>
@@ -31,6 +35,7 @@
         <button type="button" id="btn-siguiente" aria-label="Siguiente">→</button>
         <button type="button" id="btn-hoy" class="btn-hoy">Hoy</button>
         <button type="button" id="btn-nuevo" class="btn-principal">+ Evento</button>
+        <button type="button" id="btn-gasto" class="btn-principal" hidden>+ Gasto</button>
       </nav>
     </div>
   </header>
@@ -49,12 +54,20 @@
         </section>
       </div>
 
-      <aside class="resumen" id="resumen" aria-live="polite"></aside>
+      <aside class="resumen">
+        <div id="resumen" class="resumen__parte" aria-live="polite"></div>
+        <div id="panel-finanzas" class="resumen__parte" hidden></div>
+      </aside>
     </div>
 
     <section class="materias" aria-labelledby="titulo-materias">
       <h2 id="titulo-materias">Actividades</h2>
       <ul class="materias__lista" id="materias"></ul>
+    </section>
+
+    <section class="seccion-cuentas" id="seccion-cuentas" aria-labelledby="titulo-cuentas" hidden>
+      <h2 id="titulo-cuentas">Mis cuentas</h2>
+      <div class="cuentas" id="cuentas"></div>
     </section>
   </main>
 
@@ -80,11 +93,11 @@
         </label>
       </div>
 
-      <label>Lugar <span class="opcional">(opcional)</span>
+      <label><span>Lugar <span class="opcional">(opcional)</span></span>
         <input name="lugar" type="text" maxlength="80" placeholder="Ej. Edif. 4 · Raum 0.03">
       </label>
 
-      <label>Persona <span class="opcional">(opcional)</span>
+      <label><span>Persona <span class="opcional">(opcional)</span></span>
         <input name="persona" type="text" maxlength="80" placeholder="Ej. Daniel Fiß">
       </label>
 
@@ -98,6 +111,123 @@
       <div class="dialogo__botones">
         <button type="button" id="btn-borrar" class="btn-peligro" hidden>Borrar</button>
         <button type="button" id="btn-cancelar">Cancelar</button>
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Formulario de gasto -->
+  <dialog id="dialogo-gasto" class="dialogo dialogo--ancho" aria-labelledby="gasto-titulo">
+    <form id="form-gasto">
+      <h2 id="gasto-titulo">Nuevo gasto</h2>
+
+      <label>Descripción
+        <input name="descripcion" type="text" required maxlength="80" placeholder="Ej. Döner, boleto de tren…">
+      </label>
+
+      <div class="dialogo__fila">
+        <label><span>Monto (<span class="moneda-monto">€</span>)</span>
+          <input name="monto" type="number" required min="0.01" step="0.01" inputmode="decimal" placeholder="0,00">
+        </label>
+        <label>Fecha
+          <input name="fecha" type="date" required>
+        </label>
+      </div>
+
+      <div class="dialogo__fila">
+        <label>Categoría
+          <select name="categoria"></select>
+        </label>
+        <label>Pagado con
+          <select name="cuenta"></select>
+        </label>
+      </div>
+
+      <p class="dialogo__nota">El monto va en la moneda de la cuenta con que pagaste.</p>
+
+      <div class="dialogo__botones">
+        <button type="button" id="btn-borrar-gasto" class="btn-peligro" hidden>Borrar</button>
+        <button type="button" id="btn-cancelar-gasto">Cancelar</button>
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Presupuesto y gastos fijos: tres tarjetas con el mismo margen y estilo -->
+  <dialog id="dialogo-finanzas" class="dialogo dialogo--ancho ajustes" aria-labelledby="finanzas-titulo">
+    <header class="ajustes__cabeza">
+      <h2 id="finanzas-titulo">Presupuesto y gastos fijos</h2>
+      <p class="dialogo__nota">Lo que puedo gastar al mes y lo que se paga solo cada mes.</p>
+    </header>
+
+    <!-- 1. Presupuesto mensual -->
+    <form id="form-finanzas" class="tarjeta-ajustes">
+      <p class="tarjeta-ajustes__titulo">Presupuesto mensual</p>
+      <label for="input-presupuesto">Monto (€)</label>
+      <div class="ajustes__linea">
+        <input id="input-presupuesto" name="presupuesto" type="number" min="0" step="0.01"
+               inputmode="decimal" placeholder="Ej. 900">
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+      <p class="dialogo__nota">
+        Se reparte entre las semanas según cuántos días del mes tiene cada una.
+        Cuenta los gastos en euros; los de pesos (Banamex) se muestran aparte.
+        <span class="ajustes__ok" id="presupuesto-ok" aria-live="polite"></span>
+      </p>
+    </form>
+
+    <!-- 2. Gastos fijos que ya tengo -->
+    <section class="tarjeta-ajustes" aria-labelledby="titulo-fijos">
+      <p class="tarjeta-ajustes__titulo" id="titulo-fijos">Gastos fijos · se descuentan solos cada mes</p>
+      <ul class="fijos__lista" id="lista-fijos"></ul>
+    </section>
+
+    <!-- 3. Nuevo gasto fijo (misma estructura que el formulario de gasto) -->
+    <form id="form-fijo" class="tarjeta-ajustes tarjeta-ajustes--nuevo">
+      <p class="tarjeta-ajustes__titulo">Nuevo gasto fijo</p>
+
+      <label>Descripción
+        <input name="descripcion" type="text" required maxlength="60" placeholder="Ej. Renta, seguro, celular…">
+      </label>
+
+      <div class="dialogo__fila">
+        <label><span>Monto (<span class="moneda-monto">€</span>)</span>
+          <input name="monto" type="number" required min="0.01" step="0.01" inputmode="decimal" placeholder="0,00">
+        </label>
+        <label>Día del mes
+          <input name="dia" type="number" required min="1" max="31" value="1">
+        </label>
+      </div>
+
+      <div class="dialogo__fila">
+        <label>Categoría
+          <select name="categoria"></select>
+        </label>
+        <label>Pagado con
+          <select name="cuenta"></select>
+        </label>
+      </div>
+
+      <div class="dialogo__botones">
+        <button type="submit" class="btn-principal">+ Agregar gasto fijo</button>
+      </div>
+    </form>
+
+    <div class="dialogo__botones ajustes__pie">
+      <button type="button" id="btn-cerrar-finanzas">Cerrar</button>
+    </div>
+  </dialog>
+
+  <!-- Ajustar saldo / deuda de una cuenta -->
+  <dialog id="dialogo-cuenta" class="dialogo" aria-labelledby="cuenta-titulo">
+    <form id="form-cuenta">
+      <h2 id="cuenta-titulo">Cuenta</h2>
+      <label><span id="cuenta-etiqueta">¿Cuánto tienes hoy?</span>
+        <input name="valor" type="number" required step="0.01" inputmode="decimal">
+      </label>
+      <p class="dialogo__nota">Desde aquí, cada gasto con esta cuenta se descuenta solo.</p>
+      <div class="dialogo__botones">
+        <button type="button" id="btn-cancelar-cuenta">Cancelar</button>
         <button type="submit" class="btn-principal">Guardar</button>
       </div>
     </form>

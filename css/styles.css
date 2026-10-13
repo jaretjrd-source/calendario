@@ -552,8 +552,16 @@ button:focus-visible {
 
 .dialogo__fila {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); /* columnas iguales aunque el contenido sea largo */
+  gap: 0.9rem;
+}
+
+/* Campos a todo lo ancho de su columna, sin desbordarse */
+.dialogo input:not([type="checkbox"]),
+.dialogo select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.6rem;
 }
 
 .dialogo .dialogo__check {
@@ -906,6 +914,520 @@ button:focus-visible {
     position: static;
   }
 }
+
+/* ---------- 6f. Finanzas: barra lateral ---------- */
+
+/* Si se ven las dos partes (horario arriba, finanzas abajo), una línea las separa */
+.resumen {
+  max-height: calc(100vh - 7.5rem);
+  overflow-y: auto;
+}
+
+.resumen__parte:not([hidden]) ~ .resumen__parte:not([hidden]) {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.panel__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.panel__cabeza h2 {
+  margin-bottom: 0;
+}
+
+.btn-icono {
+  padding: 0.15rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.btn-ancho {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.aviso-presupuesto {
+  width: 100%;
+  text-align: left;
+  color: var(--accent);
+  border-style: dashed;
+}
+
+.presupuesto {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.presupuesto + .presupuesto,
+.presupuesto + .semanas {
+  margin-top: 0.6rem;
+}
+
+.presupuesto__titulo {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.presupuesto__resto {
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.presupuesto .resumen__barra {
+  margin-top: 0.4rem;
+}
+
+.presupuesto__detalle {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barra de presupuesto: color del acento; roja si me pasé */
+.presupuesto .resumen__barra div,
+.semana-fila .resumen__barra div {
+  background: var(--accent);
+}
+
+.excedido .presupuesto__resto {
+  color: var(--no-cumplida);
+}
+
+.excedido .resumen__barra div {
+  background: var(--no-cumplida) !important;
+}
+
+.semanas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.semana-fila {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.5rem;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.semana-fila__kw {
+  font-weight: 600;
+}
+
+.semana-fila__dias {
+  color: var(--text-soft);
+  text-align: right;
+}
+
+.semana-fila__monto {
+  grid-column: 1 / -1;
+}
+
+.semana-fila .resumen__barra {
+  grid-column: 1 / -1;
+  margin-top: 0.15rem;
+  height: 4px;
+}
+
+.seccion-cuentas {
+  margin-block: 2.5rem;
+}
+
+.cuentas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.cuenta {
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.cuenta--credito {
+  border-top-color: var(--no-cumplida);
+}
+
+.cuenta__cabeza {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.cuenta__banco {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.cuenta h3 {
+  font-size: 1.1rem;
+}
+
+.cuenta__tipo {
+  flex-shrink: 0;
+  padding: 0.1rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  background: var(--bg);
+}
+
+.cuenta__etiqueta {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.cuenta__monto {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.cuenta--credito .cuenta__monto {
+  color: var(--no-cumplida);
+}
+
+.cuenta__ajustar {
+  margin-top: 0.9rem;
+  align-self: flex-start;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.8rem;
+}
+
+/* ---------- 6g. Finanzas: en el calendario ---------- */
+
+.calendario__etiqueta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.4rem 0.5rem 0.4rem 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.gastos-dia {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 2.5rem;
+  padding: 0.3rem;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  cursor: copy;
+  min-width: 0;
+}
+
+.gastos-dia.es-hoy {
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.gasto {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0 0.3rem;
+  width: 100%;
+  padding: 0.15rem 0.4rem;
+  border: 0;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  background: var(--bg);
+  font-size: 0.72rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gasto:hover:not(:disabled) {
+  color: var(--text);
+  outline: 1px solid var(--accent);
+}
+
+.gasto--fijo {
+  border-left-style: dashed;
+}
+
+.gasto__desc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gasto__monto {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.gasto__meta {
+  width: 100%;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+}
+
+.gastos-dia__total {
+  margin-top: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.gastos-dia__vacio {
+  margin: auto;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+/* Solo gastos: la fila de gastos es lo principal, más alta y con detalle */
+.gastos-dia--detalle {
+  min-height: 22rem;
+  padding: 0.5rem 0.4rem;
+  background: var(--bg);
+  gap: 0.35rem;
+}
+
+.gastos-dia--detalle .gasto {
+  padding: 0.35rem 0.5rem;
+  background: var(--surface);
+  font-size: 0.78rem;
+}
+
+.calendario.solo-gastos .calendario__etiqueta {
+  background: var(--bg);
+}
+
+/* Vista mensual */
+.mes__gasto {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.mes__gasto span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mes__gasto span:last-child,
+.mes__gasto-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.mes__gasto-total {
+  margin-top: auto;
+  align-self: flex-end;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* ---------- 6h. Formularios de finanzas ---------- */
+
+.dialogo select {
+  font: inherit;
+  font-weight: 400;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.45rem 0.5rem;
+  color-scheme: light dark;
+}
+
+.dialogo__nota {
+  font-size: 0.8rem;
+  color: var(--text-soft);
+}
+
+.dialogo__nota:empty {
+  display: none;
+}
+
+/* Ventanas de gasto y de presupuesto: más grandes */
+.dialogo--ancho {
+  width: min(40rem, calc(100% - 2rem));
+  padding: 1.75rem 2rem;
+  font-size: 1.02rem;
+}
+
+.dialogo--ancho form {
+  gap: 1.1rem;
+}
+
+.dialogo--ancho label {
+  font-size: 0.9rem;
+}
+
+.dialogo--ancho input:not([type="checkbox"]),
+.dialogo--ancho select {
+  font-size: 1rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.dialogo--ancho .dialogo__botones button {
+  padding: 0.5rem 1.1rem;
+}
+
+
+
+
+
+
+
+
+/* Ventana "Presupuesto y gastos fijos": tres tarjetas iguales, una debajo de otra */
+.ajustes {
+  width: min(42rem, calc(100% - 2rem));
+}
+
+.ajustes__cabeza {
+  margin-bottom: 1.1rem;
+}
+
+.ajustes__cabeza h2 {
+  margin-bottom: 0.15rem;
+}
+
+.tarjeta-ajustes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem !important;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tarjeta-ajustes + .tarjeta-ajustes {
+  margin-top: 0.9rem;
+}
+
+.tarjeta-ajustes--nuevo {
+  border-style: dashed;
+  background: var(--bg);
+}
+
+.tarjeta-ajustes__titulo {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.tarjeta-ajustes > label[for] {
+  margin-bottom: -0.55rem; /* la etiqueta va pegada a su campo */
+}
+
+/* Presupuesto: campo a todo lo ancho + botón a la derecha, misma altura */
+.ajustes__linea {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.ajustes__linea input {
+  flex: 1;
+}
+
+.ajustes__ok {
+  margin-left: 0.3rem;
+  color: var(--cumplida);
+  font-weight: 600;
+}
+
+.ajustes__pie {
+  margin-top: 1.25rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.fijos__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fijos__vacio {
+  font-size: 0.85rem;
+  color: var(--text-soft);
+}
+
+.fijo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.fijo span {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.fijo small {
+  color: var(--text-soft);
+}
+
+.fijo .btn-peligro {
+  margin-right: 0;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+}
+
 
 /* ---------- 7. Lista de materias ---------- */
 

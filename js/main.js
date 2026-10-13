@@ -1,87 +1,29 @@
 // ===================================================
 // Calendario — lógica de la página
-// 1. Utilidades de fechas (semana ISO = "KW" en Alemania)
+// 1. (Las utilidades de fechas están en util.js)
 // 2. Salón de una clase en una semana dada
 // 3. Ocurrencias: qué pasa en un día (clases fijas + mis eventos)
 // 4. Dibujar: encabezado, cuadrícula, próxima actividad, lista
 // 5. Formulario de eventos
-// 6. Navegación entre semanas
+// 6. Navegación entre semanas / meses, y qué se muestra (horario, gastos o ambos)
+// (Lo de finanzas está en finanzas.js y panel-finanzas.js)
 // ===================================================
 
 import { SEMANA_INICIO, ANIO_INICIO, ACTIVIDADES, CLASES, DIAS_ESPECIALES } from "./horario.js";
 import {
   obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
-  obtenerVista, guardarVista,
+  obtenerVista, guardarVista, obtenerModos, guardarModos,
 } from "./guardado.js";
+import { gastosDelDia, totalDe, cuentaPorId, monedaDe } from "./finanzas.js";
+import { iniciarFinanzas, dibujarPanelFinanzas, dibujarCuentas, abrirGasto, nombreCuenta } from "./panel-finanzas.js";
+import {
+  DIAS, lunesDe, diaDe, lunesDeKW, kwDe, sumarDias, mismoDia, aISO, deISO,
+  aMinutos, minutosDe, fmtDia, fmtAnio, primeroDeMes, dinero, $, crear, escapar,
+} from "./util.js";
 
 const HORA_MIN = 8;   // la cuadrícula empieza a las 8:00 como mínimo
-const HORA_MAX = 19;  // y termina a las 19:00 como mínimo (se estira si hay eventos fuera)
-const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const MS_DIA = 24 * 60 * 60 * 1000;
+const HORA_MAX = 20;  // y termina a las 20:00 como mínimo (se estira si hay eventos fuera)
 const COLOR_EVENTOS = "rosa";
-
-// ---------- 1. Fechas ----------
-
-// Lunes (a las 00:00) de la semana a la que pertenece `fecha`
-function lunesDe(fecha) {
-  const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-  d.setDate(d.getDate() - diaDe(d) + 1);
-  return d;
-}
-
-// Día de la semana: 1 = lunes … 7 = domingo
-function diaDe(fecha) {
-  return ((fecha.getDay() + 6) % 7) + 1;
-}
-
-// Lunes de la semana ISO `kw` del año `anio`.
-// Regla ISO: la semana 1 es la que contiene el 4 de enero.
-function lunesDeKW(anio, kw) {
-  const lunesSemana1 = lunesDe(new Date(anio, 0, 4));
-  return sumarDias(lunesSemana1, (kw - 1) * 7);
-}
-
-// Número de semana ISO (KW) de una fecha
-function kwDe(fecha) {
-  const jueves = sumarDias(lunesDe(fecha), 3); // el jueves define el año ISO
-  const lunesSemana1 = lunesDe(new Date(jueves.getFullYear(), 0, 4));
-  return Math.round((lunesDe(fecha) - lunesSemana1) / (7 * MS_DIA)) + 1;
-}
-
-function sumarDias(fecha, dias) {
-  const d = new Date(fecha);
-  d.setDate(d.getDate() + dias);
-  return d;
-}
-
-function mismoDia(a, b) {
-  return a.toDateString() === b.toDateString();
-}
-
-// Date → "2026-10-11" (en hora local, no UTC)
-function aISO(fecha) {
-  const p = (n) => String(n).padStart(2, "0");
-  return `${fecha.getFullYear()}-${p(fecha.getMonth() + 1)}-${p(fecha.getDate())}`;
-}
-
-// "2026-10-11" → Date local
-function deISO(texto) {
-  const [a, m, d] = texto.split("-").map(Number);
-  return new Date(a, m - 1, d);
-}
-
-// "14:30" → minutos desde medianoche (870)
-function aMinutos(hora) {
-  const [h, m] = hora.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function minutosDe(fecha) {
-  return fecha.getHours() * 60 + fecha.getMinutes();
-}
-
-const fmtDia = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" });
-const fmtAnio = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short", year: "numeric" });
 
 // ---------- 2. Salón ----------
 
@@ -193,21 +135,17 @@ function asignarCarriles(lista) {
 
 // ---------- 4. Dibujar ----------
 
-const $ = (id) => document.getElementById(id);
 let lunesVisible = semanaDeHoy();
 let horaMin = HORA_MIN;
 let horaMax = HORA_MAX;
 let vista = obtenerVista();                         // "semana" o "mes"
+let modos = obtenerModos();                         // { horario: bool, gastos: bool }
 let mesVisible = primeroDeMes(sumarDias(lunesVisible, 3));
 const MES_INICIO = primeroDeMes(LUNES_INICIO);
 
 function semanaDeHoy() {
   const lunes = lunesDe(new Date());
   return lunes < LUNES_INICIO ? LUNES_INICIO : lunes;
-}
-
-function primeroDeMes(fecha) {
-  return new Date(fecha.getFullYear(), fecha.getMonth(), 1);
 }
 
 // ¿Ya terminó la actividad que acaba a la hora `fin` del día `fecha`?
@@ -222,8 +160,25 @@ function dibujar() {
   $("vista-mes").hidden = vista !== "mes";
   if (vista === "semana") dibujarCalendario();
   else dibujarMes();
-  dibujarResumen();
-  dibujarProxima();
+
+  // Barra lateral: arriba el horario, abajo las finanzas (o solo una)
+  $("resumen").hidden = !modos.horario;
+  $("panel-finanzas").hidden = !modos.gastos;
+  $("proxima").hidden = !modos.horario;
+  $("titulo-materias").parentElement.hidden = !modos.horario;
+  $("btn-nuevo").hidden = !modos.horario;
+  $("btn-gasto").hidden = !modos.gastos;
+  $("seccion-cuentas").hidden = !modos.gastos;
+
+  if (modos.horario) {
+    dibujarResumen();
+    dibujarProxima();
+  }
+  if (modos.gastos) {
+    const mes = vista === "semana" ? primeroDeMes(sumarDias(lunesVisible, 3)) : mesVisible;
+    dibujarPanelFinanzas($("panel-finanzas"), { vista, dias: diasVisibles(), mes });
+    dibujarCuentas($("cuentas"));
+  }
 }
 
 const fmtMes = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric" });
@@ -231,6 +186,9 @@ const fmtMes = new Intl.DateTimeFormat("es-MX", { month: "long", year: "numeric"
 function dibujarEncabezado() {
   for (const btn of document.querySelectorAll("[data-vista]")) {
     btn.setAttribute("aria-pressed", btn.dataset.vista === vista);
+  }
+  for (const btn of document.querySelectorAll("[data-modo]")) {
+    btn.setAttribute("aria-pressed", modos[btn.dataset.modo]);
   }
 
   if (vista === "semana") {
@@ -262,9 +220,10 @@ function diasVisibles() {
 function dibujarCalendario() {
   const cal = $("calendario");
   const ahora = new Date();
-  const semana = DIAS.map((_, i) => ocurrenciasDe(sumarDias(lunesVisible, i)));
+  const semana = DIAS.map((_, i) => (modos.horario ? ocurrenciasDe(sumarDias(lunesVisible, i)) : []));
+  cal.classList.toggle("solo-gastos", !modos.horario);
 
-  // La cuadrícula se estira si algún evento queda fuera de 8:00–19:00
+  // La cuadrícula se estira si algún evento queda fuera de 8:00–20:00
   const todas = semana.flat();
   horaMin = Math.min(HORA_MIN, ...todas.map((o) => Math.floor(aMinutos(o.inicio) / 60)));
   horaMax = Math.max(HORA_MAX, ...todas.map((o) => Math.ceil(aMinutos(o.fin) / 60)));
@@ -280,6 +239,14 @@ function dibujarCalendario() {
     th.innerHTML = `<span>${nombre}</span><small>${fmtDia.format(fecha)}</small>`;
     cal.append(th);
   });
+
+  // Fila de gastos (debajo de los días). Si el horario está apagado, es lo único
+  // que se ve y cada gasto muestra más detalle.
+  if (modos.gastos) {
+    cal.append(crear("div", "calendario__etiqueta", "Gastos"));
+    DIAS.forEach((_, i) => cal.append(celdaGastos(sumarDias(lunesVisible, i), !modos.horario)));
+  }
+  if (!modos.horario) return;
 
   // Columna de horas
   const eje = crear("div", "calendario__horas");
@@ -318,6 +285,44 @@ function dibujarCalendario() {
     }
     cal.append(col);
   });
+}
+
+// Gastos de un día en la vista semanal
+function celdaGastos(fecha, detallada) {
+  const gastos = gastosDelDia(fecha);
+  const celda = crear("div", `gastos-dia${detallada ? " gastos-dia--detalle" : ""}`);
+  if (mismoDia(fecha, new Date())) celda.classList.add("es-hoy");
+  celda.title = "Clic para agregar un gasto este día";
+  celda.addEventListener("click", () => abrirGasto(null, aISO(fecha)));
+
+  for (const g of gastos) {
+    const item = crear("button", `gasto${g.fijo ? " gasto--fijo" : ""}`);
+    item.type = "button";
+    item.title = g.fijo ? "Gasto fijo (se edita en ⚙ Presupuesto)" : "Editar gasto";
+    item.innerHTML = `
+      <span class="gasto__desc">${escapar(g.descripcion)}</span>
+      <span class="gasto__monto">${dinero(g.monto, monedaDe(g))}</span>
+      ${detallada ? `<small class="gasto__meta">${g.categoria} · ${nombreCuenta(cuentaPorId(g.cuenta))}${g.fijo ? " · fijo" : ""}</small>` : ""}
+    `;
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirGasto(g);
+    });
+    celda.append(item);
+  }
+
+  if (gastos.length) celda.append(crear("p", "gastos-dia__total", `Total ${totales(gastos)}`));
+  else if (detallada) celda.append(crear("p", "gastos-dia__vacio", "Sin gastos"));
+  return celda;
+}
+
+// Total de un día por moneda: "12,50 €", "$300.00 MXN" o "12,50 € + $300.00 MXN"
+function totales(gastos) {
+  return ["EUR", "MXN"]
+    .map((m) => [m, totalDe(gastos, m)])
+    .filter(([, total]) => total)
+    .map(([m, total]) => dinero(total, m))
+    .join(" + ");
 }
 
 function tarjeta(o, fecha, ahora) {
@@ -440,11 +445,24 @@ function dibujarMes() {
       const especial = DIAS_ESPECIALES[i + 1];
       if (especial) celda.append(crear("span", "mes__especial", especial));
 
-      for (const o of ocurrenciasDe(fecha)) {
-        const linea = crear("span", `mes__act clase--${o.color} ${estadoDe(o, fecha, ahora)}`);
-        linea.innerHTML = `<span class="mes__marca" aria-hidden="true"></span>${o.inicio} ${escapar(o.titulo)}`;
-        celda.append(linea);
+      if (modos.horario) {
+        for (const o of ocurrenciasDe(fecha)) {
+          const linea = crear("span", `mes__act clase--${o.color} ${estadoDe(o, fecha, ahora)}`);
+          linea.innerHTML = `<span class="mes__marca" aria-hidden="true"></span>${o.inicio} ${escapar(o.titulo)}`;
+          celda.append(linea);
+        }
       }
+
+      // Gastos: con el horario prendido solo el total del día; si no, la lista
+      const gastos = modos.gastos ? gastosDelDia(fecha) : [];
+      if (gastos.length && !modos.horario) {
+        for (const g of gastos) {
+          const linea = crear("span", "mes__gasto");
+          linea.innerHTML = `<span>${escapar(g.descripcion)}</span><span>${dinero(g.monto, monedaDe(g))}</span>`;
+          celda.append(linea);
+        }
+      }
+      if (gastos.length) celda.append(crear("span", "mes__gasto-total", `− ${totales(gastos)}`));
 
       celda.addEventListener("click", () => {
         lunesVisible = lunesDe(fecha) < LUNES_INICIO ? LUNES_INICIO : lunesDe(fecha);
@@ -542,20 +560,6 @@ function dibujarActividades() {
     li.innerHTML = `<strong>${m.nombre}</strong>${m.profe ? `<span>${m.profe}</span>` : ""}<small>${horas}</small>`;
     lista.append(li);
   }
-}
-
-function crear(tag, clase = "", texto = "") {
-  const el = document.createElement(tag);
-  if (clase) el.className = clase;
-  if (texto) el.textContent = texto;
-  return el;
-}
-
-// Lo que escribo en el formulario se muestra como texto, nunca como HTML
-function escapar(texto) {
-  const div = document.createElement("div");
-  div.textContent = texto;
-  return div.innerHTML;
 }
 
 function hhmm(min) {
@@ -667,13 +671,32 @@ for (const btn of document.querySelectorAll("[data-vista]")) {
 
 // Flechas del teclado para cambiar de semana/mes (no mientras se escribe en el formulario)
 document.addEventListener("keydown", (e) => {
-  if (dialogo.open) return;
+  if (document.querySelector("dialog[open]")) return;
   if (e.key === "ArrowLeft") mover(-1);
   if (e.key === "ArrowRight") mover(1);
 });
 
+// Horario / Gastos: se pueden prender los dos (calendarios sobrepuestos),
+// pero no apagar ambos
+for (const btn of document.querySelectorAll("[data-modo]")) {
+  btn.addEventListener("click", () => {
+    const nuevo = { ...modos, [btn.dataset.modo]: !modos[btn.dataset.modo] };
+    if (!nuevo.horario && !nuevo.gastos) return;
+    modos = nuevo;
+    guardarModos(modos);
+    dibujar();
+  });
+}
+
+$("btn-gasto").addEventListener("click", () => {
+  const dias = diasVisibles();
+  const hoy = aISO(new Date());
+  abrirGasto(null, aISO(dias.find((d) => aISO(d) === hoy) ?? dias[0]));
+});
+
+iniciarFinanzas(dibujar);
 dibujarActividades();
 dibujar();
 setInterval(() => {
-  if (!dialogo.open) dibujar(); // actualizar "ahora" y lo que ya pasó, cada minuto
+  if (!document.querySelector("dialog[open]")) dibujar(); // actualizar "ahora" y lo que ya pasó, cada minuto
 }, 60 * 1000);

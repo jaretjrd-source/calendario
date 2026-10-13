@@ -9,7 +9,7 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
 
 ## Qué hace
 
-- Muestra la semana completa (lunes a domingo), de 8:00 a 19:00, con el número de semana (**KW**).
+- Muestra la semana completa (lunes a domingo), de 8:00 a 20:00, con el número de semana (**KW**).
 - **Vista Semana | Mes.** En el mes, cada día muestra sus actividades en corto (hora + título)
   con su estado; clic en un día abre esa semana.
 - Navegación (botones ← → , flechas del teclado y botón "Hoy"): por semana o por mes.
@@ -27,15 +27,23 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
   o **rojo ✕** (no cumplida).
   Se puede marcar en cualquier momento, aunque ya haya pasado.
 - Si el texto no cabe en la tarjeta, termina en "…"; al pasar el mouse se ve completo.
+- **Finanzas (botón "Gastos"):** se prende junto al horario (calendarios sobrepuestos) o solo.
+  - Presupuesto mensual en €, repartido por semana según los días del mes que tiene cada una.
+  - Cada gasto (descripción, monto, fecha, categoría, cuenta) se descuenta de la cuenta con la
+    que pagué, en su moneda (Expatrio/efectivo en €, Banamex en pesos; sin conversión).
+    Los gastos en € cuentan para el presupuesto del mes y de su semana; los de pesos se muestran aparte.
+  - Gastos fijos que se repiten cada mes (renta, seguro…).
+  - Sección "Mis cuentas" abajo de la página: Expatrio, Banamex Débito, Banamex Crédito (deuda) y efectivo.
+  - En la barra lateral: horario arriba, finanzas abajo.
 - Modo oscuro automático según el sistema.
 
 ## Cómo editar el horario
 
-Todo el horario está en [`js/horario.js`](js/horario.js). Para agregar una actividad,
+Todo el horario está en [`js/horario.js`](js/horario.js); las cuentas y categorías de gastos, en [`js/cuentas.js`](js/cuentas.js). Para agregar una actividad,
 cambiar un salón o registrar un cambio a partir de cierta semana, solo se edita
 ese archivo.
 
-Los eventos que agrego desde la página y las casillas de cumplido se guardan en
+Los eventos que agrego desde la página, las casillas de cumplido y todo lo de finanzas se guardan en
 el **navegador** (`localStorage`, ver [`js/guardado.js`](js/guardado.js)): solo
 existen en el navegador/dispositivo donde los creé.
 
@@ -54,4 +62,5 @@ no con doble clic en `index.html`.
 - [x] Fase 5 — Publicado: https://jaretjrd-source.github.io/calendario/
 - [x] Fase 6 — Eventos propios (con repetición semanal) y marcar cumplido / no cumplido
 - [x] Fase 7 — Vista mensual y barra lateral de resumen
-- [ ] Fase 8 — Extras (opcional): sincronizar entre dispositivos, exportar a .ics, días festivos
+- [x] Fase 8 — Finanzas: presupuesto, gastos, gastos fijos y cuentas
+- [ ] Fase 9 — Extras (opcional): sincronizar entre dispositivos, exportar a .ics, días festivos

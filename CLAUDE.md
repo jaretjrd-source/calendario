@@ -25,6 +25,17 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
 - **Vistas:** semana (cuadrícula por horas) y mes (cuadrícula de días, actividades en corto).
   La vista elegida se recuerda (localStorage). La barra lateral `#resumen` resume el periodo
   visible (semana o mes) y lista lo no cumplido.
+- **Finanzas** (modo "Gastos", se combina con "Horario"; `calendario.modos` en localStorage):
+  - `js/cuentas.js` = CUENTAS (Expatrio €, Banamex Débito MXN, Banamex Crédito MXN → muestra deuda,
+    Efectivo €) y CATEGORIAS.
+  - `js/finanzas.js` = datos y cálculos (localStorage `calendario.finanzas`). Cada monto está en la
+    moneda de su cuenta, SIN conversión (Jaret lo pidió así). Presupuesto en € → solo cuenta
+    gastos en €; los de MXN se muestran aparte. Fijos se
+    generan al vuelo cada mes desde `desde`. Saldo = base − gastos hasta hoy (crédito: base + gastos);
+    "Ajustar" recalcula la base. Presupuesto por día = mensual ÷ días del mes → semana = suma.
+  - `js/panel-finanzas.js` = barra lateral de finanzas, sección "Mis cuentas" (abajo de la página,
+    NO en la barra lateral: ahí se veían muy chicas) + formularios (gasto, ⚙ presupuesto/fijos, cuenta).
+  - `js/util.js` = fechas, `dinero()` y helpers de DOM compartidos.
 - **Semanas:** se usa la semana ISO (KW), como en Alemania.
 
 ## Sobre Jaret
@@ -38,4 +49,4 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
 
 - Fecha de fin del semestre: no se sabe aún (la navegación no tiene límite hacia adelante).
 - Eventos y cumplidas no se sincronizan entre dispositivos (localStorage).
-- Ideas (Fase 8, opcional): sincronizar, exportar a .ics, días festivos.
+- Ideas (Fase 9, opcional): sincronizar, exportar a .ics, días festivos.

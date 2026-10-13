@@ -10,7 +10,7 @@ const CLAVE_HECHAS = "calendario.hechas";
 
 // Leer/escribir con try/catch: en modo incógnito o con el guardado
 // bloqueado, localStorage puede fallar y la página debe seguir funcionando.
-function leer(clave, porDefecto) {
+export function leer(clave, porDefecto) {
   try {
     return JSON.parse(localStorage.getItem(clave)) ?? porDefecto;
   } catch {
@@ -18,7 +18,7 @@ function leer(clave, porDefecto) {
   }
 }
 
-function escribir(clave, valor) {
+export function escribir(clave, valor) {
   try {
     localStorage.setItem(clave, JSON.stringify(valor));
   } catch {
@@ -72,4 +72,19 @@ export function obtenerVista() {
 
 export function guardarVista(vista) {
   escribir(CLAVE_VISTA, vista);
+}
+
+// ---------- Qué se muestra: horario, gastos o ambos ----------
+
+const CLAVE_MODOS = "calendario.modos";
+
+export function obtenerModos() {
+  const m = leer(CLAVE_MODOS, {});
+  const modos = { horario: m.horario !== false, gastos: m.gastos === true };
+  if (!modos.horario && !modos.gastos) modos.horario = true;
+  return modos;
+}
+
+export function guardarModos(modos) {
+  escribir(CLAVE_MODOS, modos);
 }
