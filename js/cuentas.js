@@ -5,10 +5,11 @@
 // ===================================================
 
 // moneda: "EUR" o "MXN" · credito: true = se muestra la deuda en vez del saldo
+// deposito: true = tiene botón "+ Depósito" · pagaDesde: cuenta de la que sale el pago del crédito
 export const CUENTAS = [
-  { id: "expatrio",        nombre: "Expatrio", banco: "Expatrio", tipo: "Cuenta bloqueada", moneda: "EUR" },
-  { id: "banamex-debito",  nombre: "Débito",   banco: "Banamex",  tipo: "Débito",           moneda: "MXN" },
-  { id: "banamex-credito", nombre: "Crédito",  banco: "Banamex",  tipo: "Crédito",          moneda: "MXN", credito: true },
+  { id: "expatrio",        nombre: "Expatrio", banco: "Expatrio", tipo: "Cuenta bloqueada", moneda: "EUR", deposito: true },
+  { id: "banamex-debito",  nombre: "Débito",   banco: "Banamex",  tipo: "Débito",           moneda: "MXN", deposito: true },
+  { id: "banamex-credito", nombre: "Crédito",  banco: "Banamex",  tipo: "Crédito",          moneda: "MXN", credito: true, pagaDesde: "banamex-debito" },
   { id: "efectivo",        nombre: "Efectivo", banco: "",         tipo: "Efectivo",         moneda: "EUR" },
 ];
 

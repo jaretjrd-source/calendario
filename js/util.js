@@ -80,10 +80,10 @@ export function primeroDeMes(fecha) {
 
 // ---------- Dinero ----------
 
-const fmtEUR = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
+const fmtEUR = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 const fmtMXN = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", currencyDisplay: "narrowSymbol" });
 
-// 12.5 → "12,50 €" · 1234 (MXN) → "$1,234.00 MXN"
+// 1926.5 → "1.926,50 €" · 1234 (MXN) → "$1,234.00 MXN"
 export function dinero(monto, moneda = "EUR") {
   return moneda === "MXN" ? `${fmtMXN.format(monto)} MXN` : fmtEUR.format(monto);
 }

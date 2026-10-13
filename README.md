@@ -34,6 +34,8 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
     Los gastos en € cuentan para el presupuesto del mes y de su semana; los de pesos se muestran aparte.
   - Gastos fijos que se repiten cada mes (renta, seguro…).
   - Sección "Mis cuentas" abajo de la página: Expatrio, Banamex Débito, Banamex Crédito (deuda) y efectivo.
+    Expatrio y Débito tienen botón **+ Depósito**; Crédito tiene **Pagar** (sale de Débito).
+    Depósitos y pagos aparecen en el calendario ese día y no cuentan como gasto.
   - En la barra lateral: horario arriba, finanzas abajo.
 - Modo oscuro automático según el sistema.
 

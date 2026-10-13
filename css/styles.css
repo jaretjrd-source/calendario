@@ -1116,11 +1116,30 @@ button:focus-visible {
   color: var(--no-cumplida);
 }
 
-.cuenta__ajustar {
+/* Botones de la tarjeta: acción principal (Depósito / Pagar) + Ajustar */
+.cuenta__botones {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.9rem;
-  align-self: flex-start;
+}
+
+.cuenta__botones button {
   font-size: 0.85rem;
   padding: 0.3rem 0.8rem;
+}
+
+/* Depósitos y pagos en el calendario: verdes, distintos de los gastos */
+.gasto--deposito,
+.gasto--pago {
+  border-left-color: var(--cumplida);
+}
+
+.gasto--deposito .gasto__monto {
+  color: var(--cumplida);
+}
+
+.mes__mov--deposito span:last-child {
+  color: var(--cumplida);
 }
 
 /* ---------- 6g. Finanzas: en el calendario ---------- */
@@ -1180,7 +1199,7 @@ button:focus-visible {
 }
 
 .gasto__desc {
-  flex: 1;
+  flex: 1 1 4.5rem; /* si no cabe junto al monto, el monto baja de línea */
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

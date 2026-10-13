@@ -10,6 +10,7 @@ import { CUENTAS, CATEGORIAS } from "./cuentas.js";
 import {
   obtenerConfig, guardarConfig, guardarGasto, borrarGasto, obtenerFijos, guardarFijo,
   borrarFijo, gastosDelDia, totalDe, presupuestoDe, saldoDe, ajustarSaldo, cuentaPorId,
+  guardarMovimiento, borrarMovimiento,
 } from "./finanzas.js";
 import {
   aISO, kwDe, lunesDe, sumarDias, diasDelMes, primeroDeMes, fmtDia, dinero, $, crear, escapar,
@@ -23,6 +24,7 @@ export function iniciarFinanzas(redibujar) {
   conectarGasto();
   conectarAjustes();
   conectarCuenta();
+  conectarMovimiento();
 }
 
 // ---------- 1. Barra lateral ----------
@@ -135,7 +137,7 @@ function tarjetaCuenta(cuenta) {
   el.innerHTML = `
     <div class="cuenta__cabeza">
       <div>
-        <p class="cuenta__banco">${cuenta.banco || "Sin banco"}</p>
+        <p class="cuenta__banco">${cuenta.banco || "En mano"}</p>
         <h3>${cuenta.nombre}</h3>
       </div>
       <span class="cuenta__tipo">${cuenta.tipo}</span>
@@ -143,11 +145,25 @@ function tarjetaCuenta(cuenta) {
     <p class="cuenta__etiqueta">${cuenta.credito ? "Deuda actual" : "Saldo actual"}</p>
     <p class="cuenta__monto">${dinero(monto, cuenta.moneda)}</p>
   `;
-  const btn = crear("button", "cuenta__ajustar", "Ajustar");
+  const botones = crear("div", "cuenta__botones");
+
+  // Depósito (Expatrio, Débito) o Pagar (Crédito): la acción principal de la tarjeta
+  if (cuenta.deposito || cuenta.pagaDesde) {
+    const tipo = cuenta.pagaDesde ? "pago" : "deposito";
+    const accion = crear("button", "btn-principal", tipo === "pago" ? "Pagar" : "+ Depósito");
+    accion.type = "button";
+    accion.setAttribute("aria-label", `${tipo === "pago" ? "Pagar" : "Depositar en"} ${nombreCuenta(cuenta)}`);
+    accion.addEventListener("click", () => abrirMovimiento(tipo, cuenta.id));
+    botones.append(accion);
+  }
+
+  const btn = crear("button", "", "Ajustar");
   btn.type = "button";
   btn.setAttribute("aria-label", `Ajustar ${cuenta.credito ? "deuda" : "saldo"} de ${nombreCuenta(cuenta)}`);
   btn.addEventListener("click", () => abrirCuenta(cuenta.id));
-  el.append(btn);
+  botones.append(btn);
+
+  el.append(botones);
   return el;
 }
 
@@ -318,4 +334,58 @@ function conectarCuenta() {
     alCambiar();
   });
   $("btn-cancelar-cuenta").addEventListener("click", () => dlgCuenta.close());
+}
+
+// ---------- 5. Depósitos y pagos de la tarjeta ----------
+
+const dlgMov = $("dialogo-movimiento");
+const formMov = $("form-movimiento");
+let movTipo = "deposito";
+let movCuenta = null;
+
+function abrirMovimiento(tipo, idCuenta) {
+  movTipo = tipo;
+  movCuenta = cuentaPorId(idCuenta);
+  const origen = tipo === "pago" ? cuentaPorId(movCuenta.pagaDesde) : null;
+
+  $("mov-titulo").textContent = tipo === "pago"
+    ? `Pagar ${nombreCuenta(movCuenta)}`
+    : `Depósito a ${nombreCuenta(movCuenta)}`;
+  formMov.querySelector(".moneda-monto").textContent = movCuenta.moneda === "MXN" ? "MXN" : "€";
+  $("mov-nota").textContent = tipo === "pago"
+    ? `Baja la deuda y se descuenta de ${nombreCuenta(origen)} (saldo hoy: ${dinero(saldoDe(origen.id), origen.moneda)}). Se registra en el calendario ese día.`
+    : "Se suma al saldo de la cuenta y se registra en el calendario ese día.";
+
+  formMov.reset();
+  formMov.fecha.value = aISO(new Date());
+  // Para pagar, sugerir la deuda completa
+  if (tipo === "pago") formMov.monto.value = Math.max(0, saldoDe(movCuenta.id)) || "";
+  dlgMov.showModal();
+  formMov.monto.focus();
+}
+
+// Clic en un depósito o pago del calendario → se puede borrar
+export function abrirMovimientoGuardado(mov) {
+  const cuenta = cuentaPorId(mov.cuenta);
+  const que = mov.tipo === "pago" ? `el pago de ${nombreCuenta(cuenta)}` : `el depósito a ${nombreCuenta(cuenta)}`;
+  if (!confirm(`¿Borrar ${que} por ${dinero(mov.monto, cuenta.moneda)}?`)) return;
+  borrarMovimiento(mov.id);
+  alCambiar();
+}
+
+function conectarMovimiento() {
+  formMov.addEventListener("submit", (e) => {
+    e.preventDefault();
+    guardarMovimiento({
+      tipo: movTipo,
+      fecha: formMov.fecha.value,
+      monto: Number(formMov.monto.value),
+      cuenta: movCuenta.id,
+      desde: movTipo === "pago" ? movCuenta.pagaDesde : undefined,
+      nota: formMov.nota.value.trim(),
+    });
+    dlgMov.close();
+    alCambiar();
+  });
+  $("btn-cancelar-mov").addEventListener("click", () => dlgMov.close());
 }

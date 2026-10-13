@@ -14,8 +14,10 @@ import {
   obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
   obtenerVista, guardarVista, obtenerModos, guardarModos,
 } from "./guardado.js";
-import { gastosDelDia, totalDe, cuentaPorId, monedaDe } from "./finanzas.js";
-import { iniciarFinanzas, dibujarPanelFinanzas, dibujarCuentas, abrirGasto, nombreCuenta } from "./panel-finanzas.js";
+import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia } from "./finanzas.js";
+import {
+  iniciarFinanzas, dibujarPanelFinanzas, dibujarCuentas, abrirGasto, abrirMovimientoGuardado, nombreCuenta,
+} from "./panel-finanzas.js";
 import {
   DIAS, lunesDe, diaDe, lunesDeKW, kwDe, sumarDias, mismoDia, aISO, deISO,
   aMinutos, minutosDe, fmtDia, fmtAnio, primeroDeMes, dinero, $, crear, escapar,
@@ -311,9 +313,31 @@ function celdaGastos(fecha, detallada) {
     celda.append(item);
   }
 
+  // Depósitos y pagos de la tarjeta (no son gastos: no entran al total)
+  const movs = movimientosDelDia(fecha);
+  for (const m of movs) celda.append(chipMovimiento(m, detallada));
+
   if (gastos.length) celda.append(crear("p", "gastos-dia__total", `Total ${totales(gastos)}`));
-  else if (detallada) celda.append(crear("p", "gastos-dia__vacio", "Sin gastos"));
+  else if (detallada && !movs.length) celda.append(crear("p", "gastos-dia__vacio", "Sin gastos"));
   return celda;
+}
+
+function chipMovimiento(m, detallada) {
+  const cuenta = cuentaPorId(m.cuenta);
+  const esPago = m.tipo === "pago";
+  const item = crear("button", `gasto gasto--${m.tipo}`);
+  item.type = "button";
+  item.title = `${esPago ? "Pago de" : "Depósito a"} ${nombreCuenta(cuenta)} · clic para borrar`;
+  item.innerHTML = `
+    <span class="gasto__desc">${esPago ? "Pago tarjeta" : "Depósito"}</span>
+    <span class="gasto__monto">${esPago ? "" : "+"}${dinero(m.monto, cuenta.moneda)}</span>
+    ${detallada ? `<small class="gasto__meta">${esPago ? `${escapar(nombreCuenta(cuenta))} · desde ${escapar(nombreCuenta(cuentaPorId(m.desde)))}` : escapar(nombreCuenta(cuenta))}${m.nota ? ` · ${escapar(m.nota)}` : ""}</small>` : ""}
+  `;
+  item.addEventListener("click", (e) => {
+    e.stopPropagation();
+    abrirMovimientoGuardado(m);
+  });
+  return item;
 }
 
 // Total de un día por moneda: "12,50 €", "$300.00 MXN" o "12,50 € + $300.00 MXN"
@@ -461,6 +485,13 @@ function dibujarMes() {
           linea.innerHTML = `<span>${escapar(g.descripcion)}</span><span>${dinero(g.monto, monedaDe(g))}</span>`;
           celda.append(linea);
         }
+      }
+      // Depósitos y pagos de la tarjeta
+      for (const m of modos.gastos ? movimientosDelDia(fecha) : []) {
+        const cuenta = cuentaPorId(m.cuenta);
+        const linea = crear("span", `mes__gasto mes__mov--${m.tipo}`);
+        linea.innerHTML = `<span>${m.tipo === "pago" ? "Pago tarjeta" : "Depósito"}</span><span>${m.tipo === "pago" ? "" : "+"}${dinero(m.monto, cuenta.moneda)}</span>`;
+        celda.append(linea);
       }
       if (gastos.length) celda.append(crear("span", "mes__gasto-total", `− ${totales(gastos)}`));
 

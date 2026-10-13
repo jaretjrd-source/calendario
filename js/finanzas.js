@@ -16,11 +16,16 @@ const CLAVE = "calendario.finanzas";
 // Cada monto está en la moneda de SU cuenta (Expatrio/efectivo €, Banamex MXN). No hay conversión.
 // gastos: { id, fecha "AAAA-MM-DD", descripcion, monto, categoria, cuenta }
 // fijos:  { id, descripcion, monto, dia (1–31), categoria, cuenta, desde "AAAA-MM" }
+// movimientos: { id, tipo: "deposito" | "pago", fecha, monto, cuenta, desde?, nota }
+//   deposito → entra dinero a `cuenta`
+//   pago     → se paga la tarjeta `cuenta` (crédito) con dinero de `desde` (débito)
+//   No son gastos: no cuentan para el presupuesto.
 // bases:  { idCuenta: número } → saldo (o deuda) "de partida" de cada cuenta
 let datos = {
   presupuesto: 0,
   gastos: [],
   fijos: [],
+  movimientos: [],
   bases: {},
   ...leer(CLAVE, {}),
 };
@@ -103,6 +108,24 @@ function fijoComoGasto(fijo, fecha) {
   };
 }
 
+// ---------- Depósitos y pagos ----------
+
+export function guardarMovimiento(mov) {
+  mov.id ??= nuevoId();
+  datos.movimientos = [...(datos.movimientos ?? []).filter((m) => m.id !== mov.id), mov];
+  guardar();
+}
+
+export function borrarMovimiento(id) {
+  datos.movimientos = (datos.movimientos ?? []).filter((m) => m.id !== id);
+  guardar();
+}
+
+export function movimientosDelDia(fecha) {
+  const iso = aISO(fecha);
+  return (datos.movimientos ?? []).filter((m) => m.fecha === iso);
+}
+
 // ---------- Consultas ----------
 
 // Todos los gastos de un día (los míos + los fijos que caen ese día)
@@ -129,25 +152,33 @@ export function presupuestoDe(dias) {
 }
 
 // Saldo actual de una cuenta (o deuda, si es de crédito).
-// Solo cuentan los gastos con fecha de hoy o antes.
+// Solo cuenta lo que tenga fecha de hoy o antes.
+// "Neto" = lo que salió (gastos, pagos hechos desde ella) − lo que entró (depósitos, pagos recibidos)
 export function saldoDe(idCuenta) {
   const cuenta = cuentaPorId(idCuenta);
-  const usado = movimientosHastaHoy(idCuenta);
+  const neto = netoHastaHoy(idCuenta);
   const base = datos.bases[idCuenta] ?? 0;
-  return redondear(cuenta.credito ? base + usado : base - usado);
+  return redondear(cuenta.credito ? base + neto : base - neto);
 }
 
 // "Ajustar": digo cuánto hay HOY en la cuenta (o cuánto debo) y se recalcula la base
 export function ajustarSaldo(idCuenta, valorHoy) {
   const cuenta = cuentaPorId(idCuenta);
-  const usado = movimientosHastaHoy(idCuenta);
-  datos.bases[idCuenta] = redondear(cuenta.credito ? valorHoy - usado : valorHoy + usado);
+  const neto = netoHastaHoy(idCuenta);
+  datos.bases[idCuenta] = redondear(cuenta.credito ? valorHoy - neto : valorHoy + neto);
   guardar();
 }
 
-function movimientosHastaHoy(idCuenta) {
+function netoHastaHoy(idCuenta) {
   const hoy = aISO(new Date());
   let suma = 0;
+
+  for (const m of datos.movimientos ?? []) {
+    if (m.fecha > hoy) continue;
+    if (m.tipo === "deposito" && m.cuenta === idCuenta) suma -= m.monto; // entra dinero
+    if (m.tipo === "pago" && m.cuenta === idCuenta) suma -= m.monto;     // baja la deuda
+    if (m.tipo === "pago" && m.desde === idCuenta) suma += m.monto;      // sale del débito
+  }
 
   for (const g of datos.gastos) {
     if (g.cuenta === idCuenta && g.fecha <= hoy) suma += g.monto;
