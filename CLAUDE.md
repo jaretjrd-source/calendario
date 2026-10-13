@@ -35,7 +35,8 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     "Ajustar" recalcula la base. Presupuesto por día = mensual ÷ días del mes → semana = suma.
     `movimientos`: depósitos (`deposito: true` en CUENTAS) y pagos del crédito (`pagaDesde` →
     sale de Banamex Débito). Se ven en la fila de gastos del calendario (verdes); clic = borrar.
-    No cuentan para el presupuesto.
+    No cuentan para el presupuesto. Botón "Ocultar" → clase `.ocultas` (montos con blur),
+    guardado en `calendario.ocultarSaldos`.
   - `js/panel-finanzas.js` = barra lateral de finanzas, sección "Mis cuentas" (abajo de la página,
     NO en la barra lateral: ahí se veían muy chicas) + formularios (gasto, ⚙ presupuesto/fijos, cuenta).
   - `js/util.js` = fechas, `dinero()` y helpers de DOM compartidos.

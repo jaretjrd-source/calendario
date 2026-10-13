@@ -12,6 +12,7 @@ import {
   borrarFijo, gastosDelDia, totalDe, presupuestoDe, saldoDe, ajustarSaldo, cuentaPorId,
   guardarMovimiento, borrarMovimiento,
 } from "./finanzas.js";
+import { leer, escribir } from "./guardado.js";
 import {
   aISO, kwDe, lunesDe, sumarDias, diasDelMes, primeroDeMes, fmtDia, dinero, $, crear, escapar,
 } from "./util.js";
@@ -25,6 +26,23 @@ export function iniciarFinanzas(redibujar) {
   conectarAjustes();
   conectarCuenta();
   conectarMovimiento();
+
+  // Ocultar / mostrar los montos de las cuentas (se recuerda en el navegador)
+  $("btn-ocultar").addEventListener("click", () => {
+    escribir(CLAVE_OCULTAR, !leer(CLAVE_OCULTAR, false));
+    aplicarOcultar();
+  });
+}
+
+const CLAVE_OCULTAR = "calendario.ocultarSaldos";
+
+function aplicarOcultar() {
+  const ocultar = leer(CLAVE_OCULTAR, false) === true;
+  $("cuentas").classList.toggle("ocultas", ocultar);
+  const btn = $("btn-ocultar");
+  btn.textContent = ocultar ? "Mostrar" : "Ocultar";
+  btn.setAttribute("aria-pressed", ocultar);
+  btn.title = ocultar ? "Mostrar los saldos" : "Ocultar los saldos";
 }
 
 // ---------- 1. Barra lateral ----------
@@ -77,6 +95,7 @@ export function dibujarPanelFinanzas(cont, { vista, dias, mes }) {
 export function dibujarCuentas(cont) {
   cont.innerHTML = "";
   for (const cuenta of CUENTAS) cont.append(tarjetaCuenta(cuenta));
+  aplicarOcultar();
 }
 
 // Fecha por defecto para un gasto nuevo: hoy si está a la vista, si no el primer día visible

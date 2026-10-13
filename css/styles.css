@@ -1050,6 +1050,28 @@ button:focus-visible {
   margin-block: 2.5rem;
 }
 
+.seccion-cuentas__cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.seccion-cuentas__cabeza h2 {
+  margin-bottom: 0;
+}
+
+/* Saldos ocultos: el monto se ve borroso y no se puede seleccionar */
+.cuenta__monto {
+  transition: filter 0.2s ease;
+}
+
+.cuentas.ocultas .cuenta__monto {
+  filter: blur(10px);
+  user-select: none;
+}
+
 .cuentas {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
