@@ -32,7 +32,9 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     moneda de su cuenta, SIN conversión (Jaret lo pidió así). Presupuesto en € → solo cuenta
     gastos en €; los de MXN se muestran aparte. Fijos se
     generan al vuelo cada mes desde `desde`. Saldo = base − gastos hasta hoy (crédito: base + gastos);
-    "Ajustar" recalcula la base. Presupuesto por día = mensual ÷ días del mes → semana = suma.
+    "Ajustar" recalcula la base. Fijos en € se restan del MES completo desde el día 1 (no de la semana del cobro).
+    Presupuesto semanal = (mensual − fijos del mes) ÷ días del mes × días de la semana;
+    la semana solo cuenta gastos no fijos. Las cuentas sí descuentan el fijo el día del cobro.
     `movimientos`: depósitos (`deposito: true` en CUENTAS) y pagos del crédito (`pagaDesde` →
     sale de Banamex Débito). Se ven en la fila de gastos del calendario (verdes); clic = borrar.
     No cuentan para el presupuesto. Botón "Ocultar" → clase `.ocultas` (montos con blur),

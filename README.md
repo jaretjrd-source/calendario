@@ -28,7 +28,9 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
   Se puede marcar en cualquier momento, aunque ya haya pasado.
 - Si el texto no cabe en la tarjeta, termina en "…"; al pasar el mouse se ve completo.
 - **Finanzas (botón "Gastos"):** se prende junto al horario (calendarios sobrepuestos) o solo.
-  - Presupuesto mensual en €, repartido por semana según los días del mes que tiene cada una.
+  - Presupuesto mensual en €. Los gastos fijos se restan del mes completo (desde el día 1);
+    el sobrante se reparte por semana según los días del mes que tiene cada una, y cada semana
+    solo cuenta los gastos del día a día.
   - Cada gasto (descripción, monto, fecha, categoría, cuenta) se descuenta de la cuenta con la
     que pagué, en su moneda (Expatrio/efectivo en €, Banamex en pesos; sin conversión).
     Los gastos en € cuentan para el presupuesto del mes y de su semana; los de pesos se muestran aparte.

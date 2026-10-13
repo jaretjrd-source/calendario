@@ -9,7 +9,8 @@
 import { CUENTAS, CATEGORIAS } from "./cuentas.js";
 import {
   obtenerConfig, guardarConfig, guardarGasto, borrarGasto, obtenerFijos, guardarFijo,
-  borrarFijo, gastosDelDia, totalDe, presupuestoDe, saldoDe, ajustarSaldo, cuentaPorId,
+  borrarFijo, gastosDelDia, totalDe, presupuestoDe, presupuestoMensual, fijosDelMes, saldoDe,
+  ajustarSaldo, cuentaPorId,
   guardarMovimiento, borrarMovimiento,
 } from "./finanzas.js";
 import { leer, escribir } from "./guardado.js";
@@ -70,10 +71,10 @@ export function dibujarPanelFinanzas(cont, { vista, dias, mes }) {
     const diasMes = Array.from({ length: diasDelMes(mes) }, (_, i) => sumarDias(mes, i));
 
     if (vista === "semana") {
-      cont.append(bloquePresupuesto(`Semana · KW ${kwDe(dias[0])}`, dias));
-      cont.append(bloquePresupuesto(`${mayuscula(fmtMes.format(mes))} completo`, diasMes));
+      cont.append(bloqueSemana(`Semana · KW ${kwDe(dias[0])}`, dias));
+      cont.append(bloqueMes(`${mayuscula(fmtMes.format(mes))} completo`, mes, diasMes));
     } else {
-      cont.append(bloquePresupuesto(mayuscula(fmtMes.format(mes)), diasMes));
+      cont.append(bloqueMes(mayuscula(fmtMes.format(mes)), mes, diasMes));
       cont.append(semanasDelMes(mes, diasMes));
     }
   }
@@ -105,14 +106,13 @@ function elegirFecha(dias) {
 }
 
 // Lo gastado en € (cuenta para el presupuesto) y en MXN (se muestra aparte)
+// Gastos del día a día (sin los fijos): en € cuentan para la semana; en MXN se muestran aparte
 function gastadoEn(dias) {
-  const gastos = dias.flatMap(gastosDelDia);
+  const gastos = dias.flatMap(gastosDelDia).filter((g) => !g.fijo);
   return { eur: totalDe(gastos, "EUR"), mxn: totalDe(gastos, "MXN") };
 }
 
-function bloquePresupuesto(titulo, dias) {
-  const presup = presupuestoDe(dias);
-  const { eur: gastado, mxn } = gastadoEn(dias);
+function bloquePresupuesto(titulo, presup, gastado, detalles) {
   const resto = presup - gastado;
   const pct = presup ? Math.min(100, (gastado / presup) * 100) : 0;
 
@@ -121,10 +121,32 @@ function bloquePresupuesto(titulo, dias) {
     <p class="presupuesto__titulo">${titulo}</p>
     <p class="presupuesto__resto">${resto < 0 ? `Te pasaste por ${dinero(-resto)}` : `Quedan ${dinero(resto)}`}</p>
     <div class="resumen__barra" role="img" aria-label="Gastado ${Math.round(pct)}%"><div style="width: ${pct}%"></div></div>
-    <p class="presupuesto__detalle">Gastado ${dinero(gastado)} de ${dinero(presup)}</p>
-    ${mxn ? `<p class="presupuesto__detalle">En pesos: ${dinero(mxn, "MXN")}</p>` : ""}
+    ${detalles.filter(Boolean).map((d) => `<p class="presupuesto__detalle">${d}</p>`).join("")}
   `;
   return el;
+}
+
+// Semana: su parte del sobrante del mes (presupuesto − fijos) contra lo gastado en el día a día
+function bloqueSemana(titulo, dias) {
+  const presup = presupuestoDe(dias);
+  const { eur, mxn } = gastadoEn(dias);
+  return bloquePresupuesto(titulo, presup, eur, [
+    `Gastado ${dinero(eur)} de ${dinero(presup)}`,
+    mxn && `En pesos: ${dinero(mxn, "MXN")}`,
+  ]);
+}
+
+// Mes: presupuesto completo − fijos (todos, desde el día 1) − gastos del día a día
+function bloqueMes(titulo, mes, diasMes) {
+  const presup = presupuestoMensual();
+  const fijos = fijosDelMes(mes);
+  const { eur, mxn } = gastadoEn(diasMes);
+  const mxnTotal = mxn + fijosDelMes(mes, "MXN");
+  return bloquePresupuesto(titulo, presup, fijos + eur, [
+    `Fijos ${dinero(fijos)} · Día a día ${dinero(eur)} · de ${dinero(presup)}`,
+    fijos && `Para repartir en semanas: ${dinero(Math.max(0, presup - fijos))}`,
+    mxnTotal && `En pesos: ${dinero(mxnTotal, "MXN")}`,
+  ]);
 }
 
 // Vista mensual: cómo va cada semana (KW) del mes

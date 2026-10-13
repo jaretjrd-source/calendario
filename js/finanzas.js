@@ -144,11 +144,27 @@ export function totalDe(gastos, moneda = "EUR") {
   return redondear(gastos.filter((g) => monedaDe(g) === moneda).reduce((suma, g) => suma + g.monto, 0));
 }
 
-// Presupuesto que le toca a un conjunto de días: cada día recibe
-// presupuesto mensual ÷ días de su mes. Así una semana que cruza dos meses
-// toma su parte de cada uno.
+export function presupuestoMensual() {
+  return datos.presupuesto;
+}
+
+// Total de gastos fijos de un mes en una moneda. Cuentan TODOS desde el día 1,
+// aunque su día de cobro no haya llegado: se apartan del presupuesto del mes.
+export function fijosDelMes(fecha, moneda = "EUR") {
+  return redondear(
+    datos.fijos
+      .map((f) => fijoComoGasto(f, fecha))
+      .filter((g) => g && monedaDe(g) === moneda)
+      .reduce((suma, g) => suma + g.monto, 0)
+  );
+}
+
+// Presupuesto semanal: lo que sobra del mes después de los fijos, repartido por día
+// (sobrante ÷ días del mes). Así una semana que cruza dos meses toma su parte de cada uno.
 export function presupuestoDe(dias) {
-  return redondear(dias.reduce((suma, d) => suma + datos.presupuesto / diasDelMes(d), 0));
+  return redondear(
+    dias.reduce((suma, d) => suma + Math.max(0, datos.presupuesto - fijosDelMes(d)) / diasDelMes(d), 0)
+  );
 }
 
 // Saldo actual de una cuenta (o deuda, si es de crédito).
