@@ -42,6 +42,9 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
   - `js/panel-finanzas.js` = barra lateral de finanzas, sección "Mis cuentas" (abajo de la página,
     NO en la barra lateral: ahí se veían muy chicas) + formularios (gasto, ⚙ presupuesto/fijos, cuenta).
   - `js/util.js` = fechas, `dinero()` y helpers de DOM compartidos.
+- **Prácticas** (`js/practicas.js`, localStorage `calendario.practicas`): sección "Mis prácticas"
+  siempre visible al final. `{ id, empresa, puesto, ciudad, fecha, enlace, estado: "activa"|"rechazada", nota }`.
+  Cifras Activas / Rechazadas / Total; enlaces solo http(s).
 - **Semanas:** se usa la semana ISO (KW), como en Alemania.
 
 ## Sobre Jaret
@@ -55,4 +58,4 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
 
 - Fecha de fin del semestre: no se sabe aún (la navegación no tiene límite hacia adelante).
 - Eventos y cumplidas no se sincronizan entre dispositivos (localStorage).
-- Ideas (Fase 9, opcional): sincronizar, exportar a .ics, días festivos.
+- Ideas (Fase 10, opcional): sincronizar, exportar a .ics, días festivos.

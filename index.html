@@ -72,6 +72,24 @@
       </div>
       <div class="cuentas" id="cuentas"></div>
     </section>
+
+    <!-- Seguimiento de prácticas (siempre visible) -->
+    <section class="seccion-practicas" aria-labelledby="titulo-practicas">
+      <div class="seccion-cuentas__cabeza">
+        <h2 id="titulo-practicas">Mis prácticas</h2>
+        <button type="button" id="btn-practica" class="btn-principal">+ Aplicación</button>
+      </div>
+
+      <div class="practicas__cifras" id="practicas-cifras"></div>
+
+      <div class="selector-vista practicas__filtro" role="group" aria-label="Filtrar aplicaciones">
+        <button type="button" data-filtro="todas" aria-pressed="true">Todas</button>
+        <button type="button" data-filtro="activa" aria-pressed="false">Activas</button>
+        <button type="button" data-filtro="rechazada" aria-pressed="false">Rechazadas</button>
+      </div>
+
+      <ul class="practicas__lista" id="practicas-lista"></ul>
+    </section>
   </main>
 
   <!-- Formulario para agregar / editar mis eventos -->
@@ -220,6 +238,53 @@
     <div class="dialogo__botones ajustes__pie">
       <button type="button" id="btn-cerrar-finanzas">Cerrar</button>
     </div>
+  </dialog>
+
+  <!-- Aplicación a una práctica -->
+  <dialog id="dialogo-practica" class="dialogo dialogo--ancho" aria-labelledby="practica-titulo">
+    <form id="form-practica">
+      <h2 id="practica-titulo">Nueva aplicación</h2>
+
+      <div class="dialogo__fila">
+        <label>Empresa
+          <input name="empresa" type="text" required maxlength="80" placeholder="Ej. Siemens">
+        </label>
+        <label>Puesto
+          <input name="puesto" type="text" required maxlength="80" placeholder="Ej. Praktikum Automatisierung">
+        </label>
+      </div>
+
+      <div class="dialogo__fila">
+        <label><span>Ciudad <span class="opcional">(opcional)</span></span>
+          <input name="ciudad" type="text" maxlength="60" placeholder="Ej. Dresden">
+        </label>
+        <label>Fecha en que apliqué
+          <input name="fecha" type="date" required>
+        </label>
+      </div>
+
+      <div class="dialogo__fila">
+        <label><span>Enlace a la oferta <span class="opcional">(opcional)</span></span>
+          <input name="enlace" type="url" maxlength="300" placeholder="https://…">
+        </label>
+        <label>Estado
+          <select name="estado">
+            <option value="activa">Activa</option>
+            <option value="rechazada">Rechazada</option>
+          </select>
+        </label>
+      </div>
+
+      <label><span>Nota <span class="opcional">(opcional)</span></span>
+        <input name="nota" type="text" maxlength="150" placeholder="Ej. Entrevista el 20 oct, contacto: Frau Müller">
+      </label>
+
+      <div class="dialogo__botones">
+        <button type="button" id="btn-borrar-practica" class="btn-peligro" hidden>Borrar</button>
+        <button type="button" id="btn-cancelar-practica">Cancelar</button>
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Depósito a una cuenta, o pago de la tarjeta de crédito -->

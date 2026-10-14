@@ -18,6 +18,7 @@ import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia } from 
 import {
   iniciarFinanzas, dibujarPanelFinanzas, dibujarCuentas, abrirGasto, abrirMovimientoGuardado, nombreCuenta,
 } from "./panel-finanzas.js";
+import { iniciarPracticas } from "./practicas.js";
 import {
   DIAS, lunesDe, diaDe, lunesDeKW, kwDe, sumarDias, mismoDia, aISO, deISO,
   aMinutos, minutosDe, fmtDia, fmtAnio, primeroDeMes, dinero, $, crear, escapar,
@@ -726,6 +727,7 @@ $("btn-gasto").addEventListener("click", () => {
 });
 
 iniciarFinanzas(dibujar);
+iniciarPracticas();
 dibujarActividades();
 dibujar();
 setInterval(() => {

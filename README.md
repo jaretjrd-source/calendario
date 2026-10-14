@@ -40,6 +40,9 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
     Depósitos y pagos aparecen en el calendario ese día y no cuentan como gasto.
     Botón **Ocultar** para ver los saldos borrosos (se recuerda).
   - En la barra lateral: horario arriba, finanzas abajo.
+- **Mis prácticas:** seguimiento de las prácticas a las que apliqué (empresa, puesto, ciudad,
+  fecha, enlace, nota). Cifras de **Activas**, **Rechazadas** y **Total**; filtro y botón para
+  marcar rechazada / reactivar.
 - Modo oscuro automático según el sistema.
 
 ## Cómo editar el horario
@@ -68,4 +71,5 @@ no con doble clic en `index.html`.
 - [x] Fase 6 — Eventos propios (con repetición semanal) y marcar cumplido / no cumplido
 - [x] Fase 7 — Vista mensual y barra lateral de resumen
 - [x] Fase 8 — Finanzas: presupuesto, gastos, gastos fijos y cuentas
-- [ ] Fase 9 — Extras (opcional): sincronizar entre dispositivos, exportar a .ics, días festivos
+- [x] Fase 9 — Seguimiento de prácticas
+- [ ] Fase 10 — Extras (opcional): sincronizar entre dispositivos, exportar a .ics, días festivos
