@@ -124,15 +124,17 @@ function semanasDe(mes, diasMes) {
 }
 
 // Ahorro: en cada semana del mes que YA terminó, lo que sobró de su presupuesto
-// (si en una semana me pasé, ese exceso se resta)
+// (si en una semana me pasé, ese exceso se resta). Devuelve el total y cuánto aporta cada semana.
 function ahorroDe(mes, diasMes) {
   const hoy = aISO(new Date());
-  let ahorro = 0;
-  for (const { dias } of semanasDe(mes, diasMes)) {
+  const semanas = [];
+  for (const { lunes, dias } of semanasDe(mes, diasMes)) {
     if (aISO(dias.at(-1)) >= hoy) continue; // la semana todavía no termina
-    ahorro += presupuestoDe(dias) - gastadoEn(dias).eur;
+    const valor = Math.round((presupuestoDe(dias) - gastadoEn(dias).eur) * 100) / 100;
+    semanas.push({ kw: kwDe(lunes), dias, valor });
   }
-  return Math.round(ahorro * 100) / 100;
+  const total = Math.round(semanas.reduce((s, x) => s + x.valor, 0) * 100) / 100;
+  return { total, semanas };
 }
 
 function bloquePresupuesto(titulo, presup, gastado, detalles) {
@@ -167,7 +169,13 @@ function bloqueMes(titulo, mes, diasMes) {
   // GR: hasta hoy (los fijos futuros todavía no se cobran). GE: todas las del mes.
   const regulares = gastosMes.filter((g) => !g.especial && g.fecha <= hoy);
   const especiales = gastosMes.filter((g) => g.especial);
-  const ahorro = ahorroDe(mes, diasMes);
+  const { total: ahorro, semanas: ahorroSemanas } = ahorroDe(mes, diasMes);
+  // De qué semana viene cada parte del ahorro (con sus días, por si la semana está partida)
+  const ahorroDesglose = ahorroSemanas.map(({ kw, dias, valor }) => `
+    <span class="desglose ${valor < 0 ? "negativo" : ""}">
+      <span>KW ${kw} <small>${fmtDia.format(dias[0])}–${fmtDia.format(dias.at(-1))} · ${dias.length} ${dias.length === 1 ? "día" : "días"}</small></span>
+      <span>${dinero(valor)}</span>
+    </span>`).join("");
 
   // Todo en €: lo que está en pesos se convierte con el tipo de cambio de cada gasto.
   // Lo que no tiene tipo de cambio se avisa aparte, en pesos.
@@ -187,6 +195,9 @@ function bloqueMes(titulo, mes, diasMes) {
       <div class="${ahorro < 0 ? "negativo" : "positivo"}">
         <dt>Ahorro <small>semanas terminadas</small></dt><dd>${dinero(ahorro)}</dd>
       </div>
+      ${ahorroSemanas.length
+        ? `<div class="ahorro-desglose">${ahorroDesglose}</div>`
+        : `<div class="ahorro-desglose"><span class="desglose"><small>Ninguna semana ha terminado todavía.</small></span></div>`}
       <div class="mes-resumen__gastado">
         <dt>Gastado hasta hoy</dt>
         <dd>

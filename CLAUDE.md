@@ -37,7 +37,9 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     la semana solo cuenta gastos no fijos. Las cuentas sí descuentan el fijo el día del cobro.
     `especial: true` en un gasto = compra especial: se descuenta de la cuenta, NO del presupuesto
     (ni semana ni mes). Recuadro del mes (`bloqueMes`): presupuesto inicial, ahorro (Σ en semanas
-    del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo),
+    del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo;
+    se muestra el desglose por KW con sus días, porque las semanas partidas del inicio del mes
+    también aportan),
     gastado desglosado: GR (regular hasta hoy, incluye fijos cobrados), GE (TODAS las especiales
     del mes) y Total; cada uno por moneda (€ y MXN si hay)
     (sin signo +, Jaret lo pidió así). TODO gasto en MXN (regular, especial y fijo) lleva `tipoCambio`
