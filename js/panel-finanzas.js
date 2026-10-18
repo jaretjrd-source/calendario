@@ -162,13 +162,11 @@ function bloqueSemana(titulo, dias) {
 // GR (gasto regular: día a día + fijos ya cobrados) y GE (gasto especial ★)
 function bloqueMes(titulo, mes, diasMes) {
   const hoy = aISO(new Date());
-  const hastaHoy = diasMes.flatMap(gastosDelDia).filter((g) => g.fecha <= hoy);
-  const regulares = hastaHoy.filter((g) => !g.especial);
-  const especiales = hastaHoy.filter((g) => g.especial);
-  const gr = totalDe(regulares, "EUR");
-  const ge = totalDe(especiales, "EUR");
+  const gastosMes = diasMes.flatMap(gastosDelDia);
+  // GR: hasta hoy (los fijos futuros todavía no se cobran). GE: todas las del mes.
+  const regulares = gastosMes.filter((g) => !g.especial && g.fecha <= hoy);
+  const especiales = gastosMes.filter((g) => g.especial);
   const ahorro = ahorroDe(mes, diasMes);
-  const mxn = totalDe(hastaHoy, "MXN");
 
   const el = crear("div", "presupuesto mes-resumen");
   el.innerHTML = `
@@ -181,15 +179,23 @@ function bloqueMes(titulo, mes, diasMes) {
       <div class="mes-resumen__gastado">
         <dt>Gastado hasta hoy</dt>
         <dd>
-          <span class="desglose"><abbr title="Gasto regular">GR</abbr><span>${dinero(gr)}</span></span>
-          <span class="desglose"><abbr title="Gasto especial">GE</abbr><span>${dinero(ge)}</span></span>
-          <span class="desglose desglose--total"><span>Total</span><span>${dinero(gr + ge)}</span></span>
+          <span class="desglose"><abbr title="Gasto regular">GR</abbr><span>${montos(regulares)}</span></span>
+          <span class="desglose"><abbr title="Gasto especial">GE</abbr><span>${montos(especiales)}</span></span>
+          <span class="desglose desglose--total"><span>Total</span><span>${montos([...regulares, ...especiales])}</span></span>
         </dd>
       </div>
     </dl>
-    ${mxn ? `<p class="presupuesto__detalle">En pesos: ${dinero(mxn, "MXN")}</p>` : ""}
   `;
   return el;
+}
+
+// Total por moneda, sin conversión: "120,00 €", "$500.00 MXN" o ambos en dos líneas
+function montos(gastos) {
+  const eur = totalDe(gastos, "EUR");
+  const mxn = totalDe(gastos, "MXN");
+  if (!mxn) return dinero(eur);
+  if (!eur) return dinero(mxn, "MXN");
+  return `${dinero(eur)}<br>${dinero(mxn, "MXN")}`;
 }
 
 // Vista mensual: cómo va cada semana (KW) del mes

@@ -38,7 +38,8 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     `especial: true` en un gasto = compra especial: se descuenta de la cuenta, NO del presupuesto
     (ni semana ni mes). Recuadro del mes (`bloqueMes`): presupuesto inicial, ahorro (Σ en semanas
     del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo),
-    gastado hasta hoy desglosado: GR (regular, incluye fijos cobrados), GE (especiales) y Total
+    gastado desglosado: GR (regular hasta hoy, incluye fijos cobrados), GE (TODAS las especiales
+    del mes) y Total; cada uno por moneda (€ y MXN si hay)
     (sin signo +, Jaret lo pidió así). Ya no hay renglón ni lista aparte de compras especiales.
     `movimientos`: depósitos (`deposito: true` en CUENTAS) y pagos del crédito (`pagaDesde` →
     sale de Banamex Débito). Se ven en la fila de gastos del calendario (verdes); clic = borrar.
