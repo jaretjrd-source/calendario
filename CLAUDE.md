@@ -53,8 +53,14 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
   - `js/panel-finanzas.js` = barra lateral de finanzas, sección "Mis cuentas" (abajo de la página,
     NO en la barra lateral: ahí se veían muy chicas) + formularios (gasto, ⚙ presupuesto/fijos, cuenta).
   - `js/util.js` = fechas, `dinero()` y helpers de DOM compartidos.
-- **Prácticas** (`js/practicas.js`, localStorage `calendario.practicas`): sección "Mis prácticas"
-  siempre visible al final. `{ id, empresa, puesto, ciudad, fecha, enlace, estado: "activa"|"rechazada", nota }`.
+- **Cierre de mes** (`panel-finanzas.js`: `cierreDe`, `arrastreA`): al terminar un mes,
+  (ahorro del mes + ahorro que llegó) − (GE del mes + GE que llegó). Negativo → el mes siguiente
+  recibe "Gasto especial del mes anterior" (suma a GE); positivo → "Ahorro del mes anterior"
+  (suma a Ahorro). La cadena empieza en el mes de SEMANA_INICIO y solo avanza por meses terminados.
+- **Prácticas** (`js/practicas.js`, localStorage `calendario.practicas`): pestaña APARTE
+  (botón "Prácticas", `#pestana-practicas`); NO se combina con Horario/Gastos. Al estar en ella se
+  ocultan `#pestana-calendario` y `#nav-calendario`; Horario o Gastos regresan al calendario.
+  Pestaña recordada en `calendario.pestana`. `{ id, empresa, puesto, ciudad, fecha, enlace, estado: "activa"|"rechazada", nota }`.
   Cifras Activas / Rechazadas / Total; enlaces solo http(s).
 - **Semanas:** se usa la semana ISO (KW), como en Alemania.
 

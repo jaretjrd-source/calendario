@@ -14,8 +14,9 @@ import {
   guardarMovimiento, borrarMovimiento, enEuros, enEurosTotal, ultimoTipoCambio,
 } from "./finanzas.js";
 import { leer, escribir } from "./guardado.js";
+import { SEMANA_INICIO, ANIO_INICIO } from "./horario.js";
 import {
-  aISO, kwDe, lunesDe, sumarDias, diasDelMes, primeroDeMes, fmtDia, dinero, $, crear, escapar,
+  aISO, kwDe, lunesDe, lunesDeKW, sumarDias, diasDelMes, primeroDeMes, fmtDia, dinero, $, crear, escapar,
 } from "./util.js";
 
 let alCambiar = () => {}; // main.js pasa aquí su función para redibujar
@@ -163,15 +164,67 @@ function bloqueSemana(titulo, dias) {
 
 // Mes: presupuesto inicial, ahorro y lo gastado hasta hoy desglosado en
 // GR (gasto regular: día a día + fijos ya cobrados) y GE (gasto especial ★)
+// ---------- Cierre de mes ----------
+// Al terminar un mes: (ahorro del mes + ahorro que llegó) − (GE del mes + GE que llegó).
+// Si sobra → pasa al mes siguiente como "Ahorro del mes anterior".
+// Si falta → pasa al mes siguiente como "Gasto especial del mes anterior".
+// La cadena empieza en el mes en que empezó el semestre.
+
+const MES_INICIO_FINANZAS = primeroDeMes(lunesDeKW(ANIO_INICIO, SEMANA_INICIO));
+const r2 = (n) => Math.round(n * 100) / 100;
+
+function diasDeMes(mes) {
+  return Array.from({ length: diasDelMes(mes) }, (_, i) => sumarDias(mes, i));
+}
+
+function mesSiguiente(mes) {
+  return new Date(mes.getFullYear(), mes.getMonth() + 1, 1);
+}
+
+function mesTermino(mes) {
+  return aISO(sumarDias(mesSiguiente(mes), -1)) < aISO(new Date());
+}
+
+// GE del mes en € (lo que no tiene tipo de cambio no se puede sumar)
+function geDelMes(diasMes) {
+  return enEurosTotal(diasMes.flatMap(gastosDelDia).filter((g) => g.especial)).eur;
+}
+
+// Cómo cierra un mes, dado lo que le llegó del anterior
+function cierreDe(mes, llega) {
+  const dias = diasDeMes(mes);
+  const neto = r2(ahorroDe(mes, dias).total + llega.ahorro - (geDelMes(dias) + llega.ge));
+  return neto >= 0 ? { ahorro: neto, ge: 0 } : { ahorro: 0, ge: -neto };
+}
+
+// Lo que le llega a `mes` del mes anterior: { ahorro, ge } (solo uno puede ser > 0).
+// Solo pasa algo si todos los meses anteriores ya terminaron.
+function arrastreA(mes) {
+  let llega = { ahorro: 0, ge: 0 };
+  for (let m = new Date(MES_INICIO_FINANZAS); m < mes; m = mesSiguiente(m)) {
+    if (!mesTermino(m)) return { ahorro: 0, ge: 0 };
+    llega = cierreDe(m, llega);
+  }
+  return llega;
+}
+
 function bloqueMes(titulo, mes, diasMes) {
   const hoy = aISO(new Date());
+  const llega = arrastreA(mes);
+  const mesAnterior = fmtMes.format(new Date(mes.getFullYear(), mes.getMonth() - 1, 1));
   const gastosMes = diasMes.flatMap(gastosDelDia);
   // GR: hasta hoy (los fijos futuros todavía no se cobran). GE: todas las del mes.
   const regulares = gastosMes.filter((g) => !g.especial && g.fecha <= hoy);
   const especiales = gastosMes.filter((g) => g.especial);
-  const { total: ahorro, semanas: ahorroSemanas } = ahorroDe(mes, diasMes);
+  const { total: ahorroSemanal, semanas: ahorroSemanas } = ahorroDe(mes, diasMes);
+  const ahorro = r2(ahorroSemanal + llega.ahorro);
   // De qué semana viene cada parte del ahorro (con sus días, por si la semana está partida)
-  const ahorroDesglose = ahorroSemanas.map(({ kw, dias, valor }) => `
+  const ahorroAnterior = llega.ahorro ? `
+    <span class="desglose desglose--anterior">
+      <span>Ahorro del mes anterior <small>${mesAnterior}</small></span>
+      <span>${dinero(llega.ahorro)}</span>
+    </span>` : "";
+  const ahorroDesglose = ahorroAnterior + ahorroSemanas.map(({ kw, dias, valor }) => `
     <span class="desglose ${valor < 0 ? "negativo" : ""}">
       <span>KW ${kw} <small>${fmtDia.format(dias[0])}–${fmtDia.format(dias.at(-1))} · ${dias.length} ${dias.length === 1 ? "día" : "días"}</small></span>
       <span>${dinero(valor)}</span>
@@ -184,8 +237,24 @@ function bloqueMes(titulo, mes, diasMes) {
   const aviso = (lista) => lista.length
     ? `<br><small>⚠ ${dinero(totalDe(lista, "MXN"), "MXN")} sin tipo de cambio</small>` : "";
   const grTexto = dinero(gr.eur) + aviso(gr.sinCambio);
-  const geTexto = dinero(ge.eur) + aviso(ge.sinCambio);
-  const totalTexto = `${gr.convertido || ge.convertido ? "≈ " : ""}${dinero(gr.eur + ge.eur)}`;
+  const geTotal = r2(ge.eur + llega.ge);
+  const geTexto = dinero(geTotal) + aviso(ge.sinCambio);
+  const geAnterior = llega.ge ? `
+          <span class="desglose desglose--anterior">
+            <span>Gasto especial del mes anterior <small>${mesAnterior}</small></span>
+            <span>${dinero(llega.ge)}</span>
+          </span>` : "";
+  const totalTexto = `${gr.convertido || ge.convertido ? "≈ " : ""}${dinero(gr.eur + geTotal)}`;
+
+  // Si el mes ya terminó: qué pasó al mes siguiente
+  let cierre = "";
+  if (mesTermino(mes)) {
+    const pasa = cierreDe(mes, llega);
+    const siguiente = fmtMes.format(mesSiguiente(mes));
+    cierre = pasa.ge
+      ? `<div class="mes-resumen__cierre negativo"><dt>Cierre <small>pasa a ${siguiente} como gasto especial</small></dt><dd>${dinero(pasa.ge)}</dd></div>`
+      : `<div class="mes-resumen__cierre positivo"><dt>Cierre <small>pasa a ${siguiente} como ahorro</small></dt><dd>${dinero(pasa.ahorro)}</dd></div>`;
+  }
 
   const el = crear("div", "presupuesto mes-resumen");
   el.innerHTML = `
@@ -195,17 +264,18 @@ function bloqueMes(titulo, mes, diasMes) {
       <div class="${ahorro < 0 ? "negativo" : "positivo"}">
         <dt>Ahorro <small>semanas terminadas</small></dt><dd>${dinero(ahorro)}</dd>
       </div>
-      ${ahorroSemanas.length
+      ${ahorroSemanas.length || llega.ahorro
         ? `<div class="ahorro-desglose">${ahorroDesglose}</div>`
         : `<div class="ahorro-desglose"><span class="desglose"><small>Ninguna semana ha terminado todavía.</small></span></div>`}
       <div class="mes-resumen__gastado">
         <dt>Gastado hasta hoy</dt>
         <dd>
           <span class="desglose"><abbr title="Gasto regular (en €, con tu tipo de cambio)">GR</abbr><span>${grTexto}</span></span>
-          <span class="desglose"><abbr title="Gasto especial (en €, con tu tipo de cambio)">GE</abbr><span>${geTexto}</span></span>
+          <span class="desglose"><abbr title="Gasto especial (en €, con tu tipo de cambio)">GE</abbr><span>${geTexto}</span></span>${geAnterior}
           <span class="desglose desglose--total"><span>Total</span><span>${totalTexto}</span></span>
         </dd>
       </div>
+      ${cierre}
     </dl>
   `;
   return el;

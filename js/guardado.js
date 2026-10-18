@@ -88,3 +88,15 @@ export function obtenerModos() {
 export function guardarModos(modos) {
   escribir(CLAVE_MODOS, modos);
 }
+
+// ---------- Pestaña: "calendario" (Horario/Gastos) o "practicas" ----------
+
+const CLAVE_PESTANA = "calendario.pestana";
+
+export function obtenerPestana() {
+  return leer(CLAVE_PESTANA, "calendario") === "practicas" ? "practicas" : "calendario";
+}
+
+export function guardarPestana(pestana) {
+  escribir(CLAVE_PESTANA, pestana);
+}

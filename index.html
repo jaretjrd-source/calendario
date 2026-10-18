@@ -23,6 +23,12 @@
           <button type="button" data-modo="horario" aria-pressed="true">Horario</button>
           <button type="button" data-modo="gastos" aria-pressed="false">Gastos</button>
         </div>
+        <!-- Prácticas: pestaña aparte, no se combina con Horario ni Gastos -->
+        <div class="selector-vista selector-pestana" role="group" aria-label="Pestaña aparte">
+          <button type="button" id="btn-practicas" aria-pressed="false">Prácticas</button>
+        </div>
+        <!-- Controles que solo aplican al calendario (se ocultan en Prácticas) -->
+        <div class="nav-calendario" id="nav-calendario">
         <div class="selector-vista" role="group" aria-label="Vista">
           <button type="button" data-vista="semana" aria-pressed="true">Semana</button>
           <button type="button" data-vista="mes" aria-pressed="false">Mes</button>
@@ -36,11 +42,14 @@
         <button type="button" id="btn-hoy" class="btn-hoy">Hoy</button>
         <button type="button" id="btn-nuevo" class="btn-principal">+ Evento</button>
         <button type="button" id="btn-gasto" class="btn-principal" hidden>+ Gasto</button>
+        </div>
       </nav>
     </div>
   </header>
 
   <main class="contenedor">
+    <!-- Pestaña del calendario (Horario y/o Gastos) -->
+    <div id="pestana-calendario">
     <section class="proxima" id="proxima" aria-live="polite"></section>
 
     <div class="disposicion">
@@ -73,8 +82,10 @@
       <div class="cuentas" id="cuentas"></div>
     </section>
 
-    <!-- Seguimiento de prácticas (siempre visible) -->
-    <section class="seccion-practicas" aria-labelledby="titulo-practicas">
+    </div>
+
+    <!-- Pestaña de prácticas (independiente) -->
+    <section class="seccion-practicas" id="pestana-practicas" aria-labelledby="titulo-practicas" hidden>
       <div class="seccion-cuentas__cabeza">
         <h2 id="titulo-practicas">Mis prácticas</h2>
         <button type="button" id="btn-practica" class="btn-principal">+ Aplicación</button>

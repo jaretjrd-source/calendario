@@ -41,13 +41,16 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
     cambio que yo pongo. La cuenta se descuenta en pesos; presupuestos (semana y mes), GR, GE y
     Total usan el equivalente en €. Al presupuesto mensual se le restan TODOS los fijos.
   - Recuadro del mes: **presupuesto inicial**, **ahorro** (lo que sobró en las semanas ya
-    terminadas; si me paso, se resta), **gastado hasta hoy** desglosado en GR (gasto regular), GE (gasto especial) y Total.
+    terminadas; si me paso, se resta; desglosado por semana), **gastado hasta hoy** desglosado en GR (gasto regular), GE (gasto especial) y Total.
   - Sección "Mis cuentas" abajo de la página: Expatrio, Banamex Débito, Banamex Crédito (deuda) y efectivo.
     Expatrio y Débito tienen botón **+ Depósito**; Crédito tiene **Pagar** (sale de Débito).
     Depósitos y pagos aparecen en el calendario ese día y no cuentan como gasto.
     Botón **Ocultar** para ver los saldos borrosos (se recuerda).
   - En la barra lateral: horario arriba, finanzas abajo.
-- **Mis prácticas:** seguimiento de las prácticas a las que apliqué (empresa, puesto, ciudad,
+  - **Cierre de mes:** al terminar el mes, el ahorro se usa para cubrir el gasto especial.
+    Si falta, pasa al mes siguiente como "Gasto especial del mes anterior"; si sobra, pasa
+    como "Ahorro del mes anterior".
+- **Mis prácticas** (pestaña aparte, botón "Prácticas"; no se combina con Horario ni Gastos): seguimiento de las prácticas a las que apliqué (empresa, puesto, ciudad,
   fecha, enlace, nota). Cifras de **Activas**, **Rechazadas** y **Total**; filtro y botón para
   marcar rechazada / reactivar.
 - Modo oscuro automático según el sistema.

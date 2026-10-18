@@ -12,7 +12,7 @@
 import { SEMANA_INICIO, ANIO_INICIO, ACTIVIDADES, CLASES, DIAS_ESPECIALES } from "./horario.js";
 import {
   obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
-  obtenerVista, guardarVista, obtenerModos, guardarModos,
+  obtenerVista, guardarVista, obtenerModos, guardarModos, obtenerPestana, guardarPestana,
 } from "./guardado.js";
 import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia, enEuros } from "./finanzas.js";
 import {
@@ -143,6 +143,7 @@ let horaMin = HORA_MIN;
 let horaMax = HORA_MAX;
 let vista = obtenerVista();                         // "semana" o "mes"
 let modos = obtenerModos();                         // { horario: bool, gastos: bool }
+let pestana = obtenerPestana();                     // "calendario" o "practicas"
 let mesVisible = primeroDeMes(sumarDias(lunesVisible, 3));
 const MES_INICIO = primeroDeMes(LUNES_INICIO);
 
@@ -158,6 +159,17 @@ function yaTermino(fecha, fin, ahora = new Date()) {
 }
 
 function dibujar() {
+  // Pestaña de prácticas: oculta todo lo del calendario (no se combina con nada)
+  const enPracticas = pestana === "practicas";
+  $("pestana-calendario").hidden = enPracticas;
+  $("nav-calendario").hidden = enPracticas;
+  $("pestana-practicas").hidden = !enPracticas;
+  $("btn-practicas").setAttribute("aria-pressed", enPracticas);
+  if (enPracticas) {
+    for (const btn of document.querySelectorAll("[data-modo]")) btn.setAttribute("aria-pressed", "false");
+    return;
+  }
+
   dibujarEncabezado();
   $("vista-semana").hidden = vista !== "semana";
   $("vista-mes").hidden = vista !== "mes";
@@ -705,8 +717,15 @@ for (const btn of document.querySelectorAll("[data-vista]")) {
 }
 
 // Flechas del teclado para cambiar de semana/mes (no mientras se escribe en el formulario)
+$("btn-practicas").addEventListener("click", () => {
+  pestana = "practicas";
+  guardarPestana(pestana);
+  dibujar();
+  window.scrollTo(0, 0);
+});
+
 document.addEventListener("keydown", (e) => {
-  if (document.querySelector("dialog[open]")) return;
+  if (document.querySelector("dialog[open]") || pestana === "practicas") return;
   if (e.key === "ArrowLeft") mover(-1);
   if (e.key === "ArrowRight") mover(1);
 });
@@ -715,6 +734,17 @@ document.addEventListener("keydown", (e) => {
 // pero no apagar ambos
 for (const btn of document.querySelectorAll("[data-modo]")) {
   btn.addEventListener("click", () => {
+    // Desde Prácticas: volver al calendario con ese modo prendido
+    if (pestana === "practicas") {
+      pestana = "calendario";
+      guardarPestana(pestana);
+      if (!modos[btn.dataset.modo]) {
+        modos = { ...modos, [btn.dataset.modo]: true };
+        guardarModos(modos);
+      }
+      dibujar();
+      return;
+    }
     const nuevo = { ...modos, [btn.dataset.modo]: !modos[btn.dataset.modo] };
     if (!nuevo.horario && !nuevo.gastos) return;
     modos = nuevo;
