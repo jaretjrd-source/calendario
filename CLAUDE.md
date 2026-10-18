@@ -39,7 +39,8 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     (ni semana ni mes). Recuadro del mes (`bloqueMes`): presupuesto inicial, ahorro (Σ en semanas
     del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo;
     se muestra el desglose por KW con sus días, porque las semanas partidas del inicio del mes
-    también aportan),
+    también aportan; Jaret decidió MANTENER el reparto entre todos los días del mes, aunque el
+    1–4 oct genere ahorro: no proponer repartir solo desde el inicio del semestre),
     gastado desglosado: GR (regular hasta hoy, incluye fijos cobrados), GE (TODAS las especiales
     del mes) y Total; cada uno por moneda (€ y MXN si hay)
     (sin signo +, Jaret lo pidió así). TODO gasto en MXN (regular, especial y fijo) lleva `tipoCambio`
