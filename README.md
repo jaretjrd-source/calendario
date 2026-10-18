@@ -37,6 +37,9 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
   - Gastos fijos que se repiten cada mes (renta, seguro…).
   - **Compras especiales ★:** casilla en el formulario de gasto. Se descuentan de la cuenta,
     pero no del presupuesto semanal ni mensual.
+  - **Tipo de cambio:** todo gasto pagado en pesos (regular, especial o fijo) lleva el tipo de
+    cambio que yo pongo. La cuenta se descuenta en pesos; presupuestos (semana y mes), GR, GE y
+    Total usan el equivalente en €. Al presupuesto mensual se le restan TODOS los fijos.
   - Recuadro del mes: **presupuesto inicial**, **ahorro** (lo que sobró en las semanas ya
     terminadas; si me paso, se resta), **gastado hasta hoy** desglosado en GR (gasto regular), GE (gasto especial) y Total.
   - Sección "Mis cuentas" abajo de la página: Expatrio, Banamex Débito, Banamex Crédito (deuda) y efectivo.

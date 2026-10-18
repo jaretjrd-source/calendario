@@ -40,7 +40,9 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo),
     gastado desglosado: GR (regular hasta hoy, incluye fijos cobrados), GE (TODAS las especiales
     del mes) y Total; cada uno por moneda (€ y MXN si hay)
-    (sin signo +, Jaret lo pidió así). Ya no hay renglón ni lista aparte de compras especiales.
+    (sin signo +, Jaret lo pidió así). TODO gasto en MXN (regular, especial y fijo) lleva `tipoCambio`
+    (lo pone Jaret): las cuentas se descuentan en MXN; `enEuros`/`enEurosTotal` convierten para
+    presupuesto semanal y mensual, fijos del mes, GR, GE y Total. Sin tipo de cambio → aviso ⚠. Ya no hay renglón ni lista aparte de compras especiales.
     `movimientos`: depósitos (`deposito: true` en CUENTAS) y pagos del crédito (`pagaDesde` →
     sale de Banamex Débito). Se ven en la fila de gastos del calendario (verdes); clic = borrar.
     No cuentan para el presupuesto. Botón "Ocultar" → clase `.ocultas` (montos con blur),

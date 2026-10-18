@@ -14,7 +14,7 @@ import {
   obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
   obtenerVista, guardarVista, obtenerModos, guardarModos,
 } from "./guardado.js";
-import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia } from "./finanzas.js";
+import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia, enEuros } from "./finanzas.js";
 import {
   iniciarFinanzas, dibujarPanelFinanzas, dibujarCuentas, abrirGasto, abrirMovimientoGuardado, nombreCuenta,
 } from "./panel-finanzas.js";
@@ -305,6 +305,9 @@ function celdaGastos(fecha, detallada) {
     item.innerHTML = `
       <span class="gasto__desc">${g.especial ? "★ " : ""}${escapar(g.descripcion)}</span>
       <span class="gasto__monto">${dinero(g.monto, monedaDe(g))}</span>
+      ${monedaDe(g) === "MXN"
+        ? `<small class="gasto__equivalente">${g.tipoCambio ? `≈ ${dinero(enEuros(g))} · 1 € = ${g.tipoCambio} MXN` : "⚠ sin tipo de cambio"}</small>`
+        : ""}
       ${detallada ? `<small class="gasto__meta">${g.categoria} · ${nombreCuenta(cuentaPorId(g.cuenta))}${g.fijo ? " · fijo" : ""}${g.especial ? " · especial" : ""}</small>` : ""}
     `;
     item.addEventListener("click", (e) => {

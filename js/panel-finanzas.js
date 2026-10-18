@@ -9,9 +9,9 @@
 import { CUENTAS, CATEGORIAS } from "./cuentas.js";
 import {
   obtenerConfig, guardarConfig, guardarGasto, borrarGasto, obtenerFijos, guardarFijo,
-  borrarFijo, gastosDelDia, totalDe, presupuestoDe, presupuestoMensual, fijosDelMes, saldoDe,
+  borrarFijo, gastosDelDia, totalDe, monedaDe, presupuestoDe, presupuestoMensual, fijosDelMes, saldoDe,
   ajustarSaldo, cuentaPorId,
-  guardarMovimiento, borrarMovimiento,
+  guardarMovimiento, borrarMovimiento, enEuros, enEurosTotal, ultimoTipoCambio,
 } from "./finanzas.js";
 import { leer, escribir } from "./guardado.js";
 import {
@@ -110,7 +110,8 @@ function elegirFecha(dias) {
 // en MXN se muestran aparte
 function gastadoEn(dias) {
   const gastos = dias.flatMap(gastosDelDia).filter((g) => !g.fijo && !g.especial);
-  return { eur: totalDe(gastos, "EUR"), mxn: totalDe(gastos, "MXN") };
+  const { eur, sinCambio } = enEurosTotal(gastos);
+  return { eur, mxn: totalDe(sinCambio, "MXN") }; // mxn = lo que falta convertir
 }
 
 // Semanas del mes: cada una solo con sus días que caen dentro del mes
@@ -154,7 +155,7 @@ function bloqueSemana(titulo, dias) {
   const { eur, mxn } = gastadoEn(dias);
   return bloquePresupuesto(titulo, presup, eur, [
     `Gastado ${dinero(eur)} de ${dinero(presup)}`,
-    mxn && `En pesos: ${dinero(mxn, "MXN")}`,
+    mxn && `⚠ ${dinero(mxn, "MXN")} sin tipo de cambio (clic en el gasto para ponerlo)`,
   ]);
 }
 
@@ -168,6 +169,16 @@ function bloqueMes(titulo, mes, diasMes) {
   const especiales = gastosMes.filter((g) => g.especial);
   const ahorro = ahorroDe(mes, diasMes);
 
+  // Todo en €: lo que está en pesos se convierte con el tipo de cambio de cada gasto.
+  // Lo que no tiene tipo de cambio se avisa aparte, en pesos.
+  const gr = enEurosTotal(regulares);
+  const ge = enEurosTotal(especiales);
+  const aviso = (lista) => lista.length
+    ? `<br><small>⚠ ${dinero(totalDe(lista, "MXN"), "MXN")} sin tipo de cambio</small>` : "";
+  const grTexto = dinero(gr.eur) + aviso(gr.sinCambio);
+  const geTexto = dinero(ge.eur) + aviso(ge.sinCambio);
+  const totalTexto = `${gr.convertido || ge.convertido ? "≈ " : ""}${dinero(gr.eur + ge.eur)}`;
+
   const el = crear("div", "presupuesto mes-resumen");
   el.innerHTML = `
     <p class="presupuesto__titulo">${titulo}</p>
@@ -179,9 +190,9 @@ function bloqueMes(titulo, mes, diasMes) {
       <div class="mes-resumen__gastado">
         <dt>Gastado hasta hoy</dt>
         <dd>
-          <span class="desglose"><abbr title="Gasto regular">GR</abbr><span>${montos(regulares)}</span></span>
-          <span class="desglose"><abbr title="Gasto especial">GE</abbr><span>${montos(especiales)}</span></span>
-          <span class="desglose desglose--total"><span>Total</span><span>${montos([...regulares, ...especiales])}</span></span>
+          <span class="desglose"><abbr title="Gasto regular (en €, con tu tipo de cambio)">GR</abbr><span>${grTexto}</span></span>
+          <span class="desglose"><abbr title="Gasto especial (en €, con tu tipo de cambio)">GE</abbr><span>${geTexto}</span></span>
+          <span class="desglose desglose--total"><span>Total</span><span>${totalTexto}</span></span>
         </dd>
       </div>
     </dl>
@@ -291,8 +302,10 @@ export function abrirGasto(gasto, fecha) {
   formGasto.categoria.value = d.categoria;
   formGasto.cuenta.value = d.cuenta;
   formGasto.especial.checked = d.especial === true;
+  formGasto.tipoCambio.value = d.tipoCambio ?? ultimoTipoCambio();
   $("btn-borrar-gasto").hidden = !gasto;
   actualizarMoneda(formGasto);
+  actualizarCambio();
   dlgGasto.showModal();
   formGasto.descripcion.focus();
 }
@@ -303,8 +316,27 @@ function actualizarMoneda(form) {
   form.querySelector(".moneda-monto").textContent = moneda === "MXN" ? "MXN" : "€";
 }
 
+// Compra especial en pesos → pedir el tipo de cambio y mostrar el equivalente en €
+function actualizarCambio() {
+  const mostrar = cuentaPorId(formGasto.cuenta.value).moneda === "MXN";
+  $("campo-cambio").hidden = !mostrar;
+  formGasto.tipoCambio.required = mostrar;
+
+  const monto = Number(formGasto.monto.value);
+  const cambio = Number(formGasto.tipoCambio.value);
+  $("gasto-equivalente").textContent = mostrar && monto > 0 && cambio > 0
+    ? `≈ ${dinero(monto / cambio)}`
+    : "";
+}
+
 function conectarGasto() {
-  formGasto.cuenta.addEventListener("change", () => actualizarMoneda(formGasto));
+  formGasto.cuenta.addEventListener("change", () => {
+    actualizarMoneda(formGasto);
+    actualizarCambio();
+  });
+  formGasto.especial.addEventListener("change", actualizarCambio);
+  formGasto.monto.addEventListener("input", actualizarCambio);
+  formGasto.tipoCambio.addEventListener("input", actualizarCambio);
 
   formGasto.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -316,6 +348,8 @@ function conectarGasto() {
       categoria: formGasto.categoria.value,
       cuenta: formGasto.cuenta.value,
       especial: formGasto.especial.checked,
+      // solo se guarda en gastos en pesos
+      tipoCambio: $("campo-cambio").hidden ? undefined : Number(formGasto.tipoCambio.value),
     });
     dlgGasto.close();
     alCambiar();
@@ -340,8 +374,20 @@ export function abrirAjustes() {
   formAjustes.presupuesto.value = obtenerConfig().presupuesto || "";
   $("presupuesto-ok").textContent = "";
   actualizarMoneda(formFijo);
+  formFijo.tipoCambio.value = ultimoTipoCambio();
+  actualizarCambioFijo();
   dibujarFijos();
   dlgAjustes.showModal();
+}
+
+// Fijo en pesos → pedir tipo de cambio y mostrar el equivalente en €
+function actualizarCambioFijo() {
+  const mostrar = cuentaPorId(formFijo.cuenta.value).moneda === "MXN";
+  $("campo-cambio-fijo").hidden = !mostrar;
+  formFijo.tipoCambio.required = mostrar;
+  const monto = Number(formFijo.monto.value);
+  const cambio = Number(formFijo.tipoCambio.value);
+  $("fijo-equivalente").textContent = mostrar && monto > 0 && cambio > 0 ? `≈ ${dinero(monto / cambio)}` : "";
 }
 
 function dibujarFijos() {
@@ -357,8 +403,24 @@ function dibujarFijos() {
     const li = crear("li", "fijo");
     li.innerHTML = `
       <span><strong>${escapar(f.descripcion)}</strong>
-      <small>${dinero(f.monto, cuenta.moneda)} · día ${f.dia} · ${f.categoria} · ${nombreCuenta(cuenta)}</small></span>
+      <small>${dinero(f.monto, cuenta.moneda)}${cuenta.moneda === "MXN"
+        ? (f.tipoCambio ? ` (≈ ${dinero(f.monto / f.tipoCambio)})` : " (⚠ sin tipo de cambio)") : ""}
+        · día ${f.dia} · ${f.categoria} · ${nombreCuenta(cuenta)}</small></span>
     `;
+    if (cuenta.moneda === "MXN") {
+      const cambio = crear("button", "", f.tipoCambio ? "Cambio" : "Poner cambio");
+      cambio.type = "button";
+      cambio.title = "Tipo de cambio (MXN por 1 €)";
+      cambio.addEventListener("click", () => {
+        const valor = Number(prompt(`Tipo de cambio para "${f.descripcion}" (MXN por 1 €):`, f.tipoCambio ?? ultimoTipoCambio()));
+        if (!(valor > 0)) return;
+        guardarFijo({ ...f, tipoCambio: valor });
+        dibujarFijos();
+        alCambiar();
+      });
+      li.append(cambio);
+    }
+
     const btn = crear("button", "btn-peligro", "Quitar");
     btn.type = "button";
     btn.addEventListener("click", () => {
@@ -373,7 +435,12 @@ function dibujarFijos() {
 }
 
 function conectarAjustes() {
-  formFijo.cuenta.addEventListener("change", () => actualizarMoneda(formFijo));
+  formFijo.cuenta.addEventListener("change", () => {
+    actualizarMoneda(formFijo);
+    actualizarCambioFijo();
+  });
+  formFijo.monto.addEventListener("input", actualizarCambioFijo);
+  formFijo.tipoCambio.addEventListener("input", actualizarCambioFijo);
   formAjustes.addEventListener("submit", (e) => {
     e.preventDefault();
     guardarConfig({ presupuesto: Number(formAjustes.presupuesto.value) || 0 });
@@ -391,6 +458,7 @@ function conectarAjustes() {
       categoria: formFijo.categoria.value,
       cuenta: formFijo.cuenta.value,
       desde: aISO(primeroDeMes(new Date())).slice(0, 7), // empieza a contar este mes
+      tipoCambio: $("campo-cambio-fijo").hidden ? undefined : Number(formFijo.tipoCambio.value),
     });
     formFijo.reset();
     llenarSelects();

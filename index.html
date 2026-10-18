@@ -169,6 +169,14 @@
         <span>Compra especial ★ <span class="opcional">— se descuenta de la cuenta, pero no del presupuesto</span></span>
       </label>
 
+      <!-- Solo para gastos pagados en pesos -->
+      <div class="dialogo__fila" id="campo-cambio" hidden>
+        <label>Tipo de cambio (MXN por 1 €)
+          <input name="tipoCambio" type="number" min="0.0001" step="0.0001" inputmode="decimal" placeholder="Ej. 20.15">
+        </label>
+        <p class="dialogo__equivalente" id="gasto-equivalente" aria-live="polite"></p>
+      </div>
+
       <p class="dialogo__nota">El monto va en la moneda de la cuenta con que pagaste.</p>
 
       <div class="dialogo__botones">
@@ -196,9 +204,8 @@
         <button type="submit" class="btn-principal">Guardar</button>
       </div>
       <p class="dialogo__nota">
-        Los gastos fijos se restan del mes completo; lo que sobra se reparte entre las
-        semanas según cuántos días del mes tiene cada una. Cuenta los gastos en euros;
-        los de pesos (Banamex) se muestran aparte.
+        A este presupuesto se le restan TODOS los gastos fijos (los de pesos, con su tipo de
+        cambio); lo que sobra se reparte entre las semanas según cuántos días del mes tiene cada una.
         <span class="ajustes__ok" id="presupuesto-ok" aria-live="polite"></span>
       </p>
     </form>
@@ -233,6 +240,14 @@
         <label>Pagado con
           <select name="cuenta"></select>
         </label>
+      </div>
+
+      <!-- Solo si se paga en pesos -->
+      <div class="dialogo__fila" id="campo-cambio-fijo" hidden>
+        <label>Tipo de cambio (MXN por 1 €)
+          <input name="tipoCambio" type="number" min="0.0001" step="0.0001" inputmode="decimal" placeholder="Ej. 20.15">
+        </label>
+        <p class="dialogo__equivalente" id="fijo-equivalente" aria-live="polite"></p>
       </div>
 
       <div class="dialogo__botones">

@@ -16,6 +16,8 @@ const CLAVE = "calendario.finanzas";
 // Cada monto está en la moneda de SU cuenta (Expatrio/efectivo €, Banamex MXN). No hay conversión.
 // gastos: { id, fecha "AAAA-MM-DD", descripcion, monto, categoria, cuenta, especial }
 //   especial: true = compra especial → se descuenta de la cuenta, pero NO del presupuesto
+//   tipoCambio: MXN por 1 € (todo gasto en pesos, también los fijos). La cuenta se descuenta
+//               en pesos; la conversión solo se usa para presupuestos, totales y mostrar el equivalente.
 // fijos:  { id, descripcion, monto, dia (1–31), categoria, cuenta, desde "AAAA-MM" }
 // movimientos: { id, tipo: "deposito" | "pago", fecha, monto, cuenta, desde?, nota }
 //   deposito → entra dinero a `cuenta`
@@ -51,6 +53,18 @@ export function obtenerConfig() {
 export function guardarConfig({ presupuesto }) {
   datos.presupuesto = presupuesto;
   guardar();
+}
+
+// Equivalente en € de un gasto: en € tal cual; en pesos solo si tiene tipo de cambio (si no, null)
+export function enEuros(g) {
+  if (monedaDe(g) === "EUR") return g.monto;
+  return g.tipoCambio ? Math.round((g.monto / g.tipoCambio) * 100) / 100 : null;
+}
+
+// Último tipo de cambio que usé (para proponerlo en la siguiente compra especial)
+export function ultimoTipoCambio() {
+  const conCambio = datos.gastos.filter((g) => g.tipoCambio).sort((a, b) => b.fecha.localeCompare(a.fecha));
+  return conCambio[0]?.tipoCambio ?? datos.fijos.find((f) => f.tipoCambio)?.tipoCambio ?? "";
 }
 
 // Moneda de un gasto = la de la cuenta con que se pagó
@@ -151,13 +165,26 @@ export function presupuestoMensual() {
 
 // Total de gastos fijos de un mes en una moneda. Cuentan TODOS desde el día 1,
 // aunque su día de cobro no haya llegado: se apartan del presupuesto del mes.
-export function fijosDelMes(fecha, moneda = "EUR") {
-  return redondear(
-    datos.fijos
-      .map((f) => fijoComoGasto(f, fecha))
-      .filter((g) => g && monedaDe(g) === moneda)
-      .reduce((suma, g) => suma + g.monto, 0)
-  );
+// (en €: los fijos en pesos se convierten con su tipo de cambio)
+export function fijosDelMes(fecha) {
+  return enEurosTotal(datos.fijos.map((f) => fijoComoGasto(f, fecha)).filter(Boolean)).eur;
+}
+
+// Suma en € de varios gastos. Los que están en pesos sin tipo de cambio no se pueden
+// sumar: se devuelven aparte (`sinCambio`) para avisar.
+export function enEurosTotal(gastos) {
+  let eur = 0;
+  let convertido = false;
+  const sinCambio = [];
+  for (const g of gastos) {
+    const valor = enEuros(g);
+    if (valor === null) sinCambio.push(g);
+    else {
+      eur += valor;
+      if (monedaDe(g) === "MXN") convertido = true;
+    }
+  }
+  return { eur: redondear(eur), convertido, sinCambio };
 }
 
 // Presupuesto semanal: lo que sobra del mes después de los fijos, repartido por día
