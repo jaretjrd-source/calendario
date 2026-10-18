@@ -14,7 +14,8 @@ import { aISO, deISO, diasDelMes, sumarDias } from "./util.js";
 const CLAVE = "calendario.finanzas";
 
 // Cada monto está en la moneda de SU cuenta (Expatrio/efectivo €, Banamex MXN). No hay conversión.
-// gastos: { id, fecha "AAAA-MM-DD", descripcion, monto, categoria, cuenta }
+// gastos: { id, fecha "AAAA-MM-DD", descripcion, monto, categoria, cuenta, especial }
+//   especial: true = compra especial → se descuenta de la cuenta, pero NO del presupuesto
 // fijos:  { id, descripcion, monto, dia (1–31), categoria, cuenta, desde "AAAA-MM" }
 // movimientos: { id, tipo: "deposito" | "pago", fecha, monto, cuenta, desde?, nota }
 //   deposito → entra dinero a `cuenta`

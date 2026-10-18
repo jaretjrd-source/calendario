@@ -35,6 +35,11 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
     "Ajustar" recalcula la base. Fijos en € se restan del MES completo desde el día 1 (no de la semana del cobro).
     Presupuesto semanal = (mensual − fijos del mes) ÷ días del mes × días de la semana;
     la semana solo cuenta gastos no fijos. Las cuentas sí descuentan el fijo el día del cobro.
+    `especial: true` en un gasto = compra especial: se descuenta de la cuenta, NO del presupuesto
+    (ni semana ni mes). Recuadro del mes (`bloqueMes`): presupuesto inicial, ahorro (Σ en semanas
+    del mes ya terminadas de presupuesto semanal − gastado del día a día; puede ser negativo),
+    gastado hasta hoy desglosado: GR (regular, incluye fijos cobrados), GE (especiales) y Total
+    (sin signo +, Jaret lo pidió así). Ya no hay renglón ni lista aparte de compras especiales.
     `movimientos`: depósitos (`deposito: true` en CUENTAS) y pagos del crédito (`pagaDesde` →
     sale de Banamex Débito). Se ven en la fila de gastos del calendario (verdes); clic = borrar.
     No cuentan para el presupuesto. Botón "Ocultar" → clase `.ocultas` (montos con blur),

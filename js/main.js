@@ -299,13 +299,13 @@ function celdaGastos(fecha, detallada) {
   celda.addEventListener("click", () => abrirGasto(null, aISO(fecha)));
 
   for (const g of gastos) {
-    const item = crear("button", `gasto${g.fijo ? " gasto--fijo" : ""}`);
+    const item = crear("button", `gasto${g.fijo ? " gasto--fijo" : ""}${g.especial ? " gasto--especial" : ""}`);
     item.type = "button";
     item.title = g.fijo ? "Gasto fijo (se edita en ⚙ Presupuesto)" : "Editar gasto";
     item.innerHTML = `
-      <span class="gasto__desc">${escapar(g.descripcion)}</span>
+      <span class="gasto__desc">${g.especial ? "★ " : ""}${escapar(g.descripcion)}</span>
       <span class="gasto__monto">${dinero(g.monto, monedaDe(g))}</span>
-      ${detallada ? `<small class="gasto__meta">${g.categoria} · ${nombreCuenta(cuentaPorId(g.cuenta))}${g.fijo ? " · fijo" : ""}</small>` : ""}
+      ${detallada ? `<small class="gasto__meta">${g.categoria} · ${nombreCuenta(cuentaPorId(g.cuenta))}${g.fijo ? " · fijo" : ""}${g.especial ? " · especial" : ""}</small>` : ""}
     `;
     item.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -483,7 +483,7 @@ function dibujarMes() {
       if (gastos.length && !modos.horario) {
         for (const g of gastos) {
           const linea = crear("span", "mes__gasto");
-          linea.innerHTML = `<span>${escapar(g.descripcion)}</span><span>${dinero(g.monto, monedaDe(g))}</span>`;
+          linea.innerHTML = `<span>${g.especial ? "★ " : ""}${escapar(g.descripcion)}</span><span>${dinero(g.monto, monedaDe(g))}</span>`;
           celda.append(linea);
         }
       }

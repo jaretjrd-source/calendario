@@ -1167,6 +1167,79 @@ button:focus-visible {
   color: var(--cumplida);
 }
 
+/* Recuadro del mes: cuatro datos en renglones */
+.mes-resumen__datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.6rem;
+}
+
+.mes-resumen__datos div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.mes-resumen__datos div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.mes-resumen__datos dt {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+.mes-resumen__datos dt small {
+  display: block;
+  font-size: 0.68rem;
+}
+
+.mes-resumen__datos dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.mes-resumen__datos .positivo dd { color: var(--cumplida); }
+.mes-resumen__datos .negativo dd { color: var(--no-cumplida); }
+/* "Gastado hasta hoy": desglose GR / GE y el total abajo */
+.mes-resumen__datos .mes-resumen__gastado {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.mes-resumen__gastado dd {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-weight: 400;
+}
+
+.desglose {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+}
+
+.desglose abbr {
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--text-soft);
+}
+
+.desglose--total {
+  margin-top: 0.15rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 /* ---------- 6g. Finanzas: en el calendario ---------- */
 
 .calendario__etiqueta {
@@ -1221,6 +1294,10 @@ button:focus-visible {
 
 .gasto--fijo {
   border-left-style: dashed;
+}
+
+.gasto--especial {
+  border-left-color: var(--violeta);
 }
 
 .gasto__desc {

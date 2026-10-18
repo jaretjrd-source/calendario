@@ -106,10 +106,32 @@ function elegirFecha(dias) {
 }
 
 // Lo gastado en € (cuenta para el presupuesto) y en MXN (se muestra aparte)
-// Gastos del día a día (sin los fijos): en € cuentan para la semana; en MXN se muestran aparte
+// Gastos del día a día (sin fijos ni compras especiales): en € cuentan para la semana;
+// en MXN se muestran aparte
 function gastadoEn(dias) {
-  const gastos = dias.flatMap(gastosDelDia).filter((g) => !g.fijo);
+  const gastos = dias.flatMap(gastosDelDia).filter((g) => !g.fijo && !g.especial);
   return { eur: totalDe(gastos, "EUR"), mxn: totalDe(gastos, "MXN") };
+}
+
+// Semanas del mes: cada una solo con sus días que caen dentro del mes
+function semanasDe(mes, diasMes) {
+  const semanas = [];
+  for (let lunes = lunesDe(mes); lunes <= diasMes.at(-1); lunes = sumarDias(lunes, 7)) {
+    semanas.push({ lunes, dias: diasMes.filter((d) => d >= lunes && d < sumarDias(lunes, 7)) });
+  }
+  return semanas;
+}
+
+// Ahorro: en cada semana del mes que YA terminó, lo que sobró de su presupuesto
+// (si en una semana me pasé, ese exceso se resta)
+function ahorroDe(mes, diasMes) {
+  const hoy = aISO(new Date());
+  let ahorro = 0;
+  for (const { dias } of semanasDe(mes, diasMes)) {
+    if (aISO(dias.at(-1)) >= hoy) continue; // la semana todavía no termina
+    ahorro += presupuestoDe(dias) - gastadoEn(dias).eur;
+  }
+  return Math.round(ahorro * 100) / 100;
 }
 
 function bloquePresupuesto(titulo, presup, gastado, detalles) {
@@ -136,17 +158,38 @@ function bloqueSemana(titulo, dias) {
   ]);
 }
 
-// Mes: presupuesto completo − fijos (todos, desde el día 1) − gastos del día a día
+// Mes: presupuesto inicial, ahorro y lo gastado hasta hoy desglosado en
+// GR (gasto regular: día a día + fijos ya cobrados) y GE (gasto especial ★)
 function bloqueMes(titulo, mes, diasMes) {
-  const presup = presupuestoMensual();
-  const fijos = fijosDelMes(mes);
-  const { eur, mxn } = gastadoEn(diasMes);
-  const mxnTotal = mxn + fijosDelMes(mes, "MXN");
-  return bloquePresupuesto(titulo, presup, fijos + eur, [
-    `Fijos ${dinero(fijos)} · Día a día ${dinero(eur)} · de ${dinero(presup)}`,
-    fijos && `Para repartir en semanas: ${dinero(Math.max(0, presup - fijos))}`,
-    mxnTotal && `En pesos: ${dinero(mxnTotal, "MXN")}`,
-  ]);
+  const hoy = aISO(new Date());
+  const hastaHoy = diasMes.flatMap(gastosDelDia).filter((g) => g.fecha <= hoy);
+  const regulares = hastaHoy.filter((g) => !g.especial);
+  const especiales = hastaHoy.filter((g) => g.especial);
+  const gr = totalDe(regulares, "EUR");
+  const ge = totalDe(especiales, "EUR");
+  const ahorro = ahorroDe(mes, diasMes);
+  const mxn = totalDe(hastaHoy, "MXN");
+
+  const el = crear("div", "presupuesto mes-resumen");
+  el.innerHTML = `
+    <p class="presupuesto__titulo">${titulo}</p>
+    <dl class="mes-resumen__datos">
+      <div><dt>Presupuesto inicial</dt><dd>${dinero(presupuestoMensual())}</dd></div>
+      <div class="${ahorro < 0 ? "negativo" : "positivo"}">
+        <dt>Ahorro <small>semanas terminadas</small></dt><dd>${dinero(ahorro)}</dd>
+      </div>
+      <div class="mes-resumen__gastado">
+        <dt>Gastado hasta hoy</dt>
+        <dd>
+          <span class="desglose"><abbr title="Gasto regular">GR</abbr><span>${dinero(gr)}</span></span>
+          <span class="desglose"><abbr title="Gasto especial">GE</abbr><span>${dinero(ge)}</span></span>
+          <span class="desglose desglose--total"><span>Total</span><span>${dinero(gr + ge)}</span></span>
+        </dd>
+      </div>
+    </dl>
+    ${mxn ? `<p class="presupuesto__detalle">En pesos: ${dinero(mxn, "MXN")}</p>` : ""}
+  `;
+  return el;
 }
 
 // Vista mensual: cómo va cada semana (KW) del mes
@@ -154,8 +197,7 @@ function semanasDelMes(mes, diasMes) {
   const cont = crear("div", "semanas");
   cont.append(crear("p", "presupuesto__titulo", "Por semana"));
 
-  for (let lunes = lunesDe(mes); lunes <= diasMes.at(-1); lunes = sumarDias(lunes, 7)) {
-    const dias = diasMes.filter((d) => d >= lunes && d < sumarDias(lunes, 7));
+  for (const { lunes, dias } of semanasDe(mes, diasMes)) {
     const presup = presupuestoDe(dias);
     const { eur: gastado } = gastadoEn(dias);
     const pct = presup ? Math.min(100, (gastado / presup) * 100) : 0;
@@ -235,13 +277,14 @@ let gastoEditando = null;
 export function abrirGasto(gasto, fecha) {
   if (gasto?.fijo) return abrirAjustes(); // los fijos se editan en Presupuesto
   gastoEditando = gasto;
-  const d = gasto ?? { descripcion: "", monto: "", fecha, categoria: CATEGORIAS[0], cuenta: CUENTAS[0].id };
+  const d = gasto ?? { descripcion: "", monto: "", fecha, categoria: CATEGORIAS[0], cuenta: CUENTAS[0].id, especial: false };
   $("gasto-titulo").textContent = gasto ? "Editar gasto" : "Nuevo gasto";
   formGasto.descripcion.value = d.descripcion;
   formGasto.monto.value = d.monto;
   formGasto.fecha.value = d.fecha;
   formGasto.categoria.value = d.categoria;
   formGasto.cuenta.value = d.cuenta;
+  formGasto.especial.checked = d.especial === true;
   $("btn-borrar-gasto").hidden = !gasto;
   actualizarMoneda(formGasto);
   dlgGasto.showModal();
@@ -266,6 +309,7 @@ function conectarGasto() {
       fecha: formGasto.fecha.value,
       categoria: formGasto.categoria.value,
       cuenta: formGasto.cuenta.value,
+      especial: formGasto.especial.checked,
     });
     dlgGasto.close();
     alCambiar();

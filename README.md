@@ -35,6 +35,10 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
     que pagué, en su moneda (Expatrio/efectivo en €, Banamex en pesos; sin conversión).
     Los gastos en € cuentan para el presupuesto del mes y de su semana; los de pesos se muestran aparte.
   - Gastos fijos que se repiten cada mes (renta, seguro…).
+  - **Compras especiales ★:** casilla en el formulario de gasto. Se descuentan de la cuenta,
+    pero no del presupuesto semanal ni mensual.
+  - Recuadro del mes: **presupuesto inicial**, **ahorro** (lo que sobró en las semanas ya
+    terminadas; si me paso, se resta), **gastado hasta hoy** desglosado en GR (gasto regular), GE (gasto especial) y Total.
   - Sección "Mis cuentas" abajo de la página: Expatrio, Banamex Débito, Banamex Crédito (deuda) y efectivo.
     Expatrio y Débito tienen botón **+ Depósito**; Crédito tiene **Pagar** (sale de Débito).
     Depósitos y pagos aparecen en el calendario ese día y no cuentan como gasto.
