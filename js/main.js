@@ -13,6 +13,7 @@ import { SEMANA_INICIO, ANIO_INICIO, ACTIVIDADES, CLASES, DIAS_ESPECIALES } from
 import {
   obtenerEventos, guardarEvento, borrarEvento, estaHecha, alternarHecha,
   obtenerVista, guardarVista, obtenerModos, guardarModos, obtenerPestana, guardarPestana,
+  edicionDeClase, guardarEdicionClase, clasesBorradas,
 } from "./guardado.js";
 import { gastosDelDia, totalDe, cuentaPorId, monedaDe, movimientosDelDia, enEuros } from "./finanzas.js";
 import {
@@ -69,21 +70,11 @@ function ocurrenciasDe(fecha) {
 
   // Horario fijo (solo desde que empieza el semestre)
   if (lunes >= LUNES_INICIO) {
-    CLASES.forEach((clase, i) => {
-      if (clase.dia !== dia) return;
-      const act = ACTIVIDADES[clase.materia];
-      lista.push({
-        id: `c${i}`,
-        titulo: act.nombre,
-        inicio: clase.inicio,
-        fin: clase.fin,
-        lugar: textoSalon(clase, lunes),
-        persona: act.profe ?? "",
-        color: act.color,
-        aviso: avisoCambio(clase, lunes),
-        sinSalon: "salon" in clase && salonEn(clase, lunes) == null,
-      });
-    });
+    for (const clase of CLASES) {
+      const c = claseEfectiva(clase, lunes);
+      if (!c || c.dia !== dia) continue;
+      lista.push(c);
+    }
   }
 
   // Mis eventos: los que caen ese día, o los semanales del mismo día de la semana
@@ -108,6 +99,28 @@ function ocurrenciasDe(fecha) {
 
   for (const o of lista) o.clave = `${o.id}@${iso}`;
   return lista.sort((a, b) => aMinutos(a.inicio) - aMinutos(b.inicio));
+}
+
+// Una clase de horario.js con mis cambios de la página encima (null si la borré)
+function claseEfectiva(clase, lunes) {
+  const ed = edicionDeClase(clase.id) ?? {};
+  if (ed.borrada) return null;
+  const act = ACTIVIDADES[clase.materia];
+  return {
+    id: clase.id,
+    claseId: clase.id,
+    editada: Object.keys(ed).length > 0,
+    titulo: ed.titulo ?? act.nombre,
+    dia: ed.dia ?? clase.dia,
+    inicio: ed.inicio ?? clase.inicio,
+    fin: ed.fin ?? clase.fin,
+    lugar: ed.lugar ?? textoSalon(clase, lunes),
+    persona: ed.persona ?? act.profe ?? "",
+    color: act.color,
+    // si cambié el lugar a mano, ya no aplica el aviso de cambio de salón
+    aviso: "lugar" in ed ? "" : avisoCambio(clase, lunes),
+    sinSalon: !("lugar" in ed) && "salon" in clase && salonEn(clase, lunes) == null,
+  };
 }
 
 // Reparte en "carriles" las ocurrencias que se empalman, para que queden
@@ -405,13 +418,17 @@ function tarjeta(o, fecha, ahora) {
   });
   el.prepend(check);
 
-  // Mis eventos se pueden editar con un clic
-  if (o.evento) {
+  // Mis eventos y mis clases se pueden editar con un clic
+  const abrir = o.evento ? () => abrirFormulario(o.evento)
+    : o.claseId ? () => abrirClase(o.claseId, fecha)
+    : null;
+  if (abrir) {
     el.classList.add("editable");
     el.tabIndex = 0;
-    el.addEventListener("click", () => abrirFormulario(o.evento));
+    el.title = o.evento ? "Editar evento" : "Editar o borrar esta clase";
+    el.addEventListener("click", abrir);
     el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") abrirFormulario(o.evento);
+      if (e.key === "Enter") abrir();
     });
   }
   return el;
@@ -598,16 +615,109 @@ function dibujarResumen() {
 
 function dibujarActividades() {
   const lista = $("materias");
+  lista.innerHTML = "";
   for (const [id, m] of Object.entries(ACTIVIDADES)) {
-    const horas = CLASES
+    const bloques = CLASES
       .filter((c) => c.materia === id)
-      .map((c) => `${DIAS[c.dia - 1].slice(0, 3)} ${c.inicio}`)
-      .join(" · ");
+      .map((c) => claseEfectiva(c, semanaDeHoy()))
+      .filter(Boolean)
+      .sort((a, b) => a.dia - b.dia || a.inicio.localeCompare(b.inicio));
+    if (!bloques.length) continue; // todas sus clases están borradas
+    const horas = bloques.map((c) => `${DIAS[c.dia - 1].slice(0, 3)} ${c.inicio}`).join(" · ");
     const li = crear("li", `materia clase--${m.color}`);
     li.innerHTML = `<strong>${m.nombre}</strong>${m.profe ? `<span>${m.profe}</span>` : ""}<small>${horas}</small>`;
     lista.append(li);
   }
+
+  // Si borré clases desde la página, poder recuperarlas
+  const borradas = clasesBorradas().filter((id) => CLASES.some((c) => c.id === id));
+  const btn = $("btn-restaurar-clases");
+  btn.hidden = borradas.length === 0;
+  btn.textContent = `Restaurar ${borradas.length} ${borradas.length === 1 ? "clase borrada" : "clases borradas"}`;
 }
+
+// ---------- 5b. Editar / borrar una clase ----------
+
+const dlgClase = $("dialogo-clase");
+const formClase = $("form-clase");
+let claseEditando = null; // { clase de horario.js, original (sin mis cambios) }
+
+function abrirClase(id, fecha) {
+  const clase = CLASES.find((c) => c.id === id);
+  const ed = edicionDeClase(id) ?? {};
+  const act = ACTIVIDADES[clase.materia];
+  const lunes = lunesDe(fecha);
+  const original = {
+    titulo: act.nombre, dia: clase.dia, inicio: clase.inicio, fin: clase.fin,
+    lugar: textoSalon(clase, lunes), persona: act.profe ?? "",
+  };
+  claseEditando = { clase, original, ed };
+  const actual = { ...original, ...ed };
+
+  formClase.titulo.value = actual.titulo;
+  formClase.dia.value = actual.dia;
+  formClase.inicio.value = actual.inicio;
+  formClase.fin.value = actual.fin;
+  formClase.lugar.value = actual.lugar;
+  formClase.persona.value = actual.persona;
+  $("btn-restaurar-clase").hidden = Object.keys(ed).length === 0;
+  $("error-clase").textContent = "";
+  dlgClase.showModal();
+  formClase.titulo.focus();
+}
+
+formClase.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (formClase.fin.value <= formClase.inicio.value) {
+    $("error-clase").textContent = "La hora de fin tiene que ser después de la de inicio.";
+    return;
+  }
+  const { clase, original, ed } = claseEditando;
+  const nuevo = {
+    titulo: formClase.titulo.value.trim(),
+    dia: Number(formClase.dia.value),
+    inicio: formClase.inicio.value,
+    fin: formClase.fin.value,
+    lugar: formClase.lugar.value.trim(),
+    persona: formClase.persona.value.trim(),
+  };
+  // Solo guardar lo que es distinto del original (así, p. ej., el cambio de salón
+  // por semana de horario.js sigue funcionando si no toqué el lugar)
+  const cambios = {};
+  for (const [k, v] of Object.entries(nuevo)) {
+    if (v !== original[k]) cambios[k] = v;
+  }
+  guardarEdicionClase(clase.id, cambios);
+  dlgClase.close();
+  dibujarActividades();
+  dibujar();
+});
+
+$("btn-borrar-clase").addEventListener("click", () => {
+  const { clase, original } = claseEditando;
+  if (!confirm(`¿Borrar "${original.titulo}" del ${DIAS[original.dia - 1].toLowerCase()} ${original.inicio} de TODAS las semanas?`)) return;
+  guardarEdicionClase(clase.id, { borrada: true });
+  dlgClase.close();
+  dibujarActividades();
+  dibujar();
+});
+
+$("btn-restaurar-clase").addEventListener("click", () => {
+  guardarEdicionClase(claseEditando.clase.id, {});
+  dlgClase.close();
+  dibujarActividades();
+  dibujar();
+});
+
+$("btn-cancelar-clase").addEventListener("click", () => dlgClase.close());
+
+$("btn-restaurar-clases").addEventListener("click", () => {
+  const borradas = clasesBorradas();
+  if (!confirm(`¿Volver a poner ${borradas.length === 1 ? "la clase borrada" : `las ${borradas.length} clases borradas`}?`)) return;
+  for (const id of borradas) guardarEdicionClase(id, {});
+  dibujarActividades();
+  dibujar();
+});
 
 function hhmm(min) {
   const p = (n) => String(n).padStart(2, "0");

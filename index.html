@@ -72,6 +72,7 @@
     <section class="materias" aria-labelledby="titulo-materias">
       <h2 id="titulo-materias">Actividades</h2>
       <ul class="materias__lista" id="materias"></ul>
+      <button type="button" id="btn-restaurar-clases" class="btn-restaurar" hidden>Restaurar clases borradas</button>
     </section>
 
     <section class="seccion-cuentas" id="seccion-cuentas" aria-labelledby="titulo-cuentas" hidden>
@@ -269,6 +270,58 @@
     <div class="dialogo__botones ajustes__pie">
       <button type="button" id="btn-cerrar-finanzas">Cerrar</button>
     </div>
+  </dialog>
+
+  <!-- Editar / borrar una clase del horario -->
+  <dialog id="dialogo-clase" class="dialogo dialogo--ancho" aria-labelledby="clase-titulo">
+    <form id="form-clase">
+      <h2 id="clase-titulo">Editar clase</h2>
+
+      <label>Nombre
+        <input name="titulo" type="text" required maxlength="80">
+      </label>
+
+      <div class="dialogo__fila">
+        <label>Día
+          <select name="dia">
+            <option value="1">Lunes</option>
+            <option value="2">Martes</option>
+            <option value="3">Miércoles</option>
+            <option value="4">Jueves</option>
+            <option value="5">Viernes</option>
+            <option value="6">Sábado</option>
+            <option value="7">Domingo</option>
+          </select>
+        </label>
+        <div class="dialogo__fila">
+          <label>Inicio
+            <input name="inicio" type="time" required step="300">
+          </label>
+          <label>Fin
+            <input name="fin" type="time" required step="300">
+          </label>
+        </div>
+      </div>
+
+      <div class="dialogo__fila">
+        <label><span>Lugar <span class="opcional">(opcional)</span></span>
+          <input name="lugar" type="text" maxlength="80" placeholder="Ej. Edif. 4 · Raum 1.04">
+        </label>
+        <label><span>Profesor <span class="opcional">(opcional)</span></span>
+          <input name="persona" type="text" maxlength="80">
+        </label>
+      </div>
+
+      <p class="dialogo__nota">Los cambios aplican a todas las semanas.</p>
+      <p class="dialogo__error" id="error-clase" role="alert"></p>
+
+      <div class="dialogo__botones">
+        <button type="button" id="btn-borrar-clase" class="btn-peligro">Borrar clase</button>
+        <button type="button" id="btn-restaurar-clase" hidden>Restaurar original</button>
+        <button type="button" id="btn-cancelar-clase">Cancelar</button>
+        <button type="submit" class="btn-principal">Guardar</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Aplicación a una práctica -->

@@ -100,3 +100,24 @@ export function obtenerPestana() {
 export function guardarPestana(pestana) {
   escribir(CLAVE_PESTANA, pestana);
 }
+
+// ---------- Cambios a mis clases hechos desde la página ----------
+// { idClase: { titulo?, dia?, inicio?, fin?, lugar?, persona?, borrada? } }
+// Solo se guarda lo que cambié; lo demás sigue saliendo de horario.js.
+
+const CLAVE_CLASES = "calendario.clases";
+let edicionesClases = leer(CLAVE_CLASES, {});
+
+export function edicionDeClase(id) {
+  return edicionesClases[id] ?? null;
+}
+
+export function guardarEdicionClase(id, cambios) {
+  if (Object.keys(cambios).length) edicionesClases[id] = cambios;
+  else delete edicionesClases[id];
+  escribir(CLAVE_CLASES, edicionesClases);
+}
+
+export function clasesBorradas() {
+  return Object.keys(edicionesClases).filter((id) => edicionesClases[id].borrada);
+}

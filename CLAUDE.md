@@ -9,7 +9,12 @@ Wintersemester 2026/27; el horario empezó en la KW 41).
   modo oscuro automático). Cada actividad tiene un color (`--azul`, `--violeta`, `--cian`, …).
 - **Datos:** todo el horario vive en `js/horario.js`. `main.js` solo dibuja.
   - `ACTIVIDADES` = qué es (nombre, profe opcional, color).
-  - `CLASES` = cuándo y dónde (`dia` 1 = lunes … 7 = domingo).
+  - `CLASES` = cuándo y dónde (`dia` 1 = lunes … 7 = domingo). Cada bloque tiene `id` FIJO
+    (`c0`…`c14`, = su posición original, para no romper las marcas de cumplida). No reutilizar ids:
+    `c5` (Microcontrollers miércoles) se quitó porque la cancelaron.
+  - Ediciones desde la página (`calendario.clases` en localStorage, `guardado.js`): por id, solo los
+    campos cambiados (`titulo, dia, inicio, fin, lugar, persona`) o `{ borrada: true }`.
+    `claseEfectiva()` en main.js aplica esos cambios encima de horario.js.
     Sin propiedad `salon` = no se muestra lugar; `salon: null` = "Sin salón";
     `cambios: [{ desde: KW, salon }]` = cambio a partir de esa semana
     (`salon: undefined` = por confirmar).

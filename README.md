@@ -19,6 +19,10 @@ que mi [portafolio](https://jaretjrd-source.github.io/portafolio/).
 - Cada actividad con su color; salón, edificio y profesor cuando aplica.
 - Días con una nota en vez de horas (el domingo es de **repaso**).
 - Cambios de salón por semana (p. ej. Image Processing del jueves pasa al 1.04 desde la KW 46).
+- **Editar o borrar clases desde la página:** clic en una clase → cambiar nombre, día, horario,
+  lugar o profesor (aplica a todas las semanas), "Restaurar original" o "Borrar clase".
+  Las borradas se pueden recuperar con "Restaurar clases borradas" (abajo de Actividades).
+  Microcontrollers del miércoles se quitó porque la cancelaron.
 - **Mis eventos:** botón "+ Evento" (o clic en un hueco libre) para agregar uno con
   título, fecha, horario, lugar y persona, y opción de **repetir cada semana**.
   Clic en un evento para editarlo o borrarlo.

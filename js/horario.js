@@ -19,6 +19,8 @@ export const ACTIVIDADES = {
 };
 
 // Bloques de la semana.
+// id: identificador FIJO de cada bloque (las marcas de "cumplida" y las ediciones hechas
+//     desde la página se guardan con él). No cambiarlo ni reutilizar uno borrado.
 // dia: 1 = lunes … 7 = domingo
 // edificio + salon: dónde es. salon: null = sin salón asignado.
 //                   Si no se ponen, no se muestra lugar.
@@ -26,28 +28,28 @@ export const ACTIVIDADES = {
 //          (salon: undefined = todavía no se sabe cuál)
 export const CLASES = [
   // Lunes
-  { materia: "mpw", dia: 1, inicio: "14:30", fin: "16:00", edificio: 4, salon: "0.03" },
+  { id: "c0", materia: "mpw", dia: 1, inicio: "14:30", fin: "16:00", edificio: 4, salon: "0.03" },
 
   // Martes
-  { materia: "ann", dia: 2, inicio: "10:00", fin: "11:30", edificio: 4, salon: "0.03" },
-  { materia: "mc",  dia: 2, inicio: "14:30", fin: "16:00", edificio: 4, salon: "1.04" },
+  { id: "c1", materia: "ann", dia: 2, inicio: "10:00", fin: "11:30", edificio: 4, salon: "0.03" },
+  { id: "c2", materia: "mc",  dia: 2, inicio: "14:30", fin: "16:00", edificio: 4, salon: "1.04" },
 
   // Miércoles
-  { materia: "ip",  dia: 3, inicio: "08:00", fin: "09:30", edificio: 4, salon: "1.06" },
-  { materia: "ann", dia: 3, inicio: "10:00", fin: "11:30", edificio: 4, salon: "1.06" },
-  { materia: "mc",  dia: 3, inicio: "12:30", fin: "14:00", edificio: 4, salon: "0.03" },
+  { id: "c3", materia: "ip",  dia: 3, inicio: "08:00", fin: "09:30", edificio: 4, salon: "1.06" },
+  { id: "c4", materia: "ann", dia: 3, inicio: "10:00", fin: "11:30", edificio: 4, salon: "1.06" },
+  // (c5: Microcontrollers del miércoles 12:30 — cancelada, se quitó)
 
   // Jueves
-  { materia: "cob", dia: 4, inicio: "08:00", fin: "09:30", edificio: 4, salon: "0.02" },
+  { id: "c6", materia: "cob", dia: 4, inicio: "08:00", fin: "09:30", edificio: 4, salon: "0.02" },
   {
-    materia: "ip", dia: 4, inicio: "10:00", fin: "11:30", edificio: 4, salon: "0.02",
+    id: "c7", materia: "ip", dia: 4, inicio: "10:00", fin: "11:30", edificio: 4, salon: "0.02",
     cambios: [{ desde: 46, salon: "1.04" }],
   },
-  { materia: "cob", dia: 4, inicio: "12:30", fin: "14:00", edificio: null, salon: null },
+  { id: "c8", materia: "cob", dia: 4, inicio: "12:30", fin: "14:00", edificio: null, salon: null },
 
   // Alemán: lunes a viernes por la tarde y sábado al mediodía
-  ...[1, 2, 3, 4, 5].map((dia) => ({ materia: "aleman", dia, inicio: "17:00", fin: "18:00" })),
-  { materia: "aleman", dia: 6, inicio: "12:00", fin: "13:00" },
+  ...[1, 2, 3, 4, 5].map((dia) => ({ id: `c${8 + dia}`, materia: "aleman", dia, inicio: "17:00", fin: "18:00" })),
+  { id: "c14", materia: "aleman", dia: 6, inicio: "12:00", fin: "13:00" },
 ];
 
 // Días con una nota en lugar de bloques con hora
